@@ -48,6 +48,7 @@ class Component:
     def __init__(self, term_list, myTL_ID):
         self.term_list = term_list
         self.CID = myTL_ID
+        self.LHS = Term([Subterm(1.0,0,0)], myTL_ID)
 
     def __del__(self):
         self.term_list = []
@@ -103,14 +104,86 @@ class Component:
                     x += 1 
             itx += 1
 
+    def remove_high_order(self):
+        for myterm in self.term_list:
+            myterm.remove_high_order()
+
+    # solve component if the term appears on left and right sides of the equation
+    def solve(self):
+        # first, ensure the component is "clean" for solving
+        self.remove_high_order()
+        self.combine_terms()
+
+        ### move self terms to the LHS
+        itx = 0
+        while(itx < self.nterms()):
+            myTerm = self.term_list[itx]
+            newSubTermList = []
+            if(myTerm.TID == self.CID):
+                for mySubTerm in myTerm.subterm_list:
+                    newSubTermList.append(Subterm(-1.0*mySubTerm.coeff,mySubTerm.r_order,mySubTerm.z_order))
+                self.LHS.subterm_list.extend(newSubTermList)
+                del self.term_list[itx]
+            itx += 1
+
+        ### invert the operator on the LHS and apply to the RHS
+        ### (1 - x)^-1 = 1 + x + x^2 + x^3 + ...
+
+        ### calc extra term x, then calculate x^2, x^3, etc.
+         
+        extraTerm = Term([],0)
+
+        if(self.LHS.subterm_list[0].isIdentity):
+            for mySubTerm in self.LHS.subterm_list[1:]:
+                extraTerm.subterm_list.append(mySubTerm)
+        else:
+            ### TODO: if the first subterm is not I, then adjust the whole term
+            print "We've run into a non-identity! Have to code for this case."
+        
+        ### negate each subterm
+        for mySubTerm in extraTerm.subterm_list:
+            mySubTerm.coeff = -1.0*mySubTerm.coeff
+
+        ### calculate x^2, x^3
+        extraTerm_squared = term_mult(extraTerm,extraTerm)
+        #extraTerm_squared.remove_high_order()
+        #extraTerm_squared.combine_subterms()
+
+        extraTerm_cubed = term_mult(extraTerm,extraTerm_squared)
+        #extraTerm_cubed.remove_high_order()
+        #extraTerm_cubed.combine_subterms()
+         
+        extraTerm.term_add(extraTerm_squared)
+        extraTerm.term_add(extraTerm_cubed)
+
+        extraTerm.subterm_list.insert(0,Subterm(1.0,0,0))
+
+        ### now, extra term = I + x + x^2 + x^3
+        print "Extra term is:"
+        extraTerm.print_info()
+
+        ### next, multiply each term in the component by the new extraTerm
+        newTermList = []
+        for myTerm in self.term_list:
+            tmpTerm = term_mult(myTerm,extraTerm)
+            #tmpTerm.remove_high_order() 
+            #tmpTerm.combine_subterms() 
+            newTermList.append(tmpTerm)
+
+        self.term_list = newTermList
+
+        self.reset_LHS()
+
+    def reset_LHS(self):
+        self.LHS.subterm_list = []
+        self.LHS = Term([Subterm(1.0,0,0)],0)
+
+
     def print_info(self):
         print "My component terms: ID = %i (%s)" % (self.CID,variable_names[self.CID])
         for myterm in self.term_list:
             myterm.print_info()
 
-    def remove_high_order(self):
-        for myterm in self.term_list:
-            myterm.remove_high_order()
 
 class Term:
     def __init__(self, subterm_list, variable_ID):
@@ -250,6 +323,12 @@ class Subterm:
         else:
             return False
 
+    def isIdentity(self):
+        if(self.coeff == 1.0 and self.r_order == 0 and self.z_order == 0):
+            return True
+        else:
+            return False
+        
     def print_info(self):
         print "Subterm: coeff = %.5f, Lr = %i, Lz = %i" % (self.coeff,self.r_order,self.z_order)
 
@@ -268,15 +347,8 @@ def term_mult(myTerm, thatTerm):
             newSubTermList.append(newSubTerm)
     
     newTerm = Term(newSubTermList,myTerm.TID)
-
-    print "Before combine_subterms:"
-    newTerm.print_info()
-    newTerm.combine_subterms()
-    print "After combine_subterms:"
-    newTerm.print_info()
     newTerm.remove_high_order()
-    print "After remove_high_order:"
-    newTerm.print_info()
+    newTerm.combine_subterms()
 
     return newTerm
 
@@ -425,7 +497,7 @@ if __name__ == '__main__':
         tmpSubTermList.append(Subterm(5.0/63.0,0,2))
         tmpSubTermList.append(Subterm(5.0/99.0,2,1))
 
-        tmpTermList.append(Term(tmpSubTermList,LIN_AX_AZI))
+        tmpTermList.append(Term(tmpSubTermList,LIN_AX_POL))
 
         newComponent = Component(tmpTermList,QUAD_AX_XXX)
         
@@ -440,6 +512,11 @@ if __name__ == '__main__':
         myComponent.substitute_component(newComponent)
 
         print "Combination:"
+        myComponent.print_info()
+
+        print "Solving component..."
+        myComponent.solve()
+        print "New expression:"
         myComponent.print_info()
        
 
