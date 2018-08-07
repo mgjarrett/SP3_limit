@@ -3,9 +3,8 @@
 ### To calculate SP3 limit of 2D/1D method with anisotropic TL
 #########################################
 # This code performs algebra to determine the theoretical limit of 
-# accuracy for a 2D/1D method with linear and quadratic axial and 
-# radial TL moments.
-# There are 4 linear and 6 quadratic moments. Equations for each 
+# accuracy for a 2D/1D method with linear axial and radial TL moments.
+# There are 4 linear moments. Equations for each 
 # in terms of the others are determined by hand, and hardcoded into 
 # this script. The script then solves the 10x10 system algebraically 
 # to determine each moment in terms of derivatives of the isotropic moment.
@@ -184,6 +183,10 @@ class Component:
         for myterm in self.term_list:
             myterm.print_info()
 
+    def print_component(self):
+        print "My component terms: ID = %i (%s)" % (self.CID,variable_names[self.CID])
+        for myterm in self.term_list:
+            myterm.print_term()
 
 class Term:
     def __init__(self, subterm_list, variable_ID):
@@ -237,6 +240,17 @@ class Term:
                     x += 1 
             ist += 1
 
+        self.remove_zero()
+
+    def remove_zero(self):
+        ist = 0
+        while (ist < self.nsubterms()):
+             tmpSubTerm = self.subterm_list[ist]
+             if(abs(tmpSubTerm.coeff) < THRESHOLD):
+                 del self.subterm_list[ist]
+             else:
+                 ist += 1
+
     # remove terms with total order higher than max_order (3)
     def remove_high_order(self):
         ist = 0
@@ -258,6 +272,27 @@ class Term:
         print "Term variable ID: %i (%s)" % (self.TID,variable_names[self.TID])
         for mySubTerm in self.subterm_list:
             mySubTerm.print_info()
+
+    def print_term(self):
+        print "Term variable ID: %i (%s)" % (self.TID,variable_names[self.TID])
+        print "( ",
+        for mySubTerm in self.subterm_list:
+            if(mySubTerm.coeff > 0.0):
+                print "+",
+            else:
+                print " ",
+            print "%7.5f" % (mySubTerm.coeff),
+            if(mySubTerm.r_order > 0):
+                if(mySubTerm.r_order == 1):
+                    print "Lr",
+                else:
+                    print "Lr^%i" % mySubTerm.r_order,
+            if(mySubTerm.z_order > 0):
+                if(mySubTerm.z_order == 1):
+                    print "Lz",
+                else:
+                    print "Lz^%i" % mySubTerm.z_order,
+        print ") "
 
 class Subterm:
     def __init__(self, coeff, r_order, z_order):
@@ -376,6 +411,8 @@ QUAD_RAD_AZI =  9
 QUAD_RAD_XXX = 10
 SOURCE_2D    = 11
 SOURCE_1D    = 12
+
+THRESHOLD = 1.0E-6
 
 
 # names for each TL component variable
@@ -518,6 +555,18 @@ if __name__ == '__main__':
         myComponent.solve()
         print "New expression:"
         myComponent.print_info()
+
+        ### Testing print term
+        myComponent.print_component()
+
+    ### linear
+    order = int(sys.argv[1])
+
+    #if(order == 1): # linear
+        # set up component list
+        
+    #elif(order == 2): # quadratic
+
        
 
     logname = "logfile"
