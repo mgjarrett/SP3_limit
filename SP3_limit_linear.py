@@ -229,6 +229,8 @@ class Component:
         ### now, extra term = I + x + x^2 + x^3
         ### combine subterms
         extraTerm.combine_subterms()
+        ### sort subterms
+        extraTerm.sort_subterms()
         print "Extra term is:"
         extraTerm.print_info()
 
@@ -448,6 +450,68 @@ class Term:
         #str_return = nospace.join(['\\l[','\\r]'])
         return nospace.join(tmpstr)
 
+    def sort_subterms(self):
+        # first, ensure higher order terms are removed
+        self.remove_high_order() 
+        # and like terms are combined
+        self.combine_subterms() 
+
+        ist = 0
+        st_order = []
+        while(ist < self.nsubterms()):
+            thisSubTerm = self.subterm_list[ist]
+            st_order.append(thisSubTerm.r_order + thisSubTerm.z_order)
+            ist += 1
+
+        # st_order is a list of the order of each subterm
+        # sorted_order is a list of the old subterm indices 
+        # in the order they should be placed
+        sorted_order = [0] * self.nsubterms()
+        sorted_operator_order = [0] * self.nsubterms()
+        
+        x = 0
+        for ordrz in range(0,4):
+            for ist in range(0,self.nsubterms()):
+                if(st_order[ist] == ordrz):
+                    sorted_order[x] = ist
+                    sorted_operator_order[x] = st_order[ist] 
+                    x += 1
+
+        print "sorted_order: "
+        print sorted_order
+        print "sorted_operator_order: "
+        print sorted_operator_order
+
+        ### pass 10 times to get it right
+        for i in range(0,10):
+            for x in range(0,self.nsubterms()-1):
+                ### sort within a group of similar order
+                if(sorted_operator_order[x] == sorted_operator_order[x+1]):
+                    ist = sorted_order[x]
+                    istp = sorted_order[x+1]
+                    ### put non-cross terms first
+                    if((self.subterm_list[ist].r_order > 0 and self.subterm_list[ist].z_order > 0) and
+                       (self.subterm_list[istp].r_order == 0 or self.subterm_list[istp].z_order == 0)):
+                        tmp = sorted_order[x]
+                        sorted_order[x] = sorted_order[x+1]
+                        sorted_order[x+1] = tmp
+                        print "after: (%i,%i)" % (sorted_order[x],sorted_order[x+1])
+                    ### put higher r_order first
+                    elif((self.subterm_list[ist].z_order > self.subterm_list[ist].r_order) and
+                         (self.subterm_list[istp].r_order > self.subterm_list[istp].z_order)):
+                        tmp = sorted_order[x]
+                        sorted_order[x] = sorted_order[x+1]
+                        sorted_order[x+1] = tmp
+
+        ### generate new subterm list in the correct order
+        newSubTermList = []
+        for x in range(0,self.nsubterms()):
+            tmpSubTerm = copy_subterm(self.subterm_list[sorted_order[x]])
+            newSubTermList.append(tmpSubTerm)
+
+        self.subterm_list = newSubTermList
+            
+
 class Subterm:
     def __init__(self, coeff, r_order, z_order):
         self.coeff = coeff
@@ -570,6 +634,9 @@ def copy_subterm_list(thatSubTermList):
     for mySubTerm in thatSubTermList:
         newSubTermList.append(Subterm(mySubTerm.coeff,mySubTerm.r_order,mySubTerm.z_order) )
     return newSubTermList
+
+def copy_subterm(thatSubTerm):
+    return Subterm(thatSubTerm.coeff,thatSubTerm.r_order,thatSubTerm.z_order)
 
 def compare_fraction(thatFloat):
     for i in range(0,nfrac):
@@ -1030,7 +1097,6 @@ if __name__ == '__main__':
 
 
     #elif(order == 2): # quadratic
-
        
 
     logname = "logfile"
