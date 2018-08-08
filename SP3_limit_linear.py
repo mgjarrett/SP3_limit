@@ -571,7 +571,10 @@ nID = 16
 
 THRESHOLD = 1.0E-6
 
-texname = "equations_output.tex"
+if(int(sys.argv[1]) == 1):
+    texname = "equations_output_linear.tex"
+if(int(sys.argv[1]) == 2):
+    texname = "equations_output_quadratic.tex"
 
 equation_counter = Counter(nID)
 
