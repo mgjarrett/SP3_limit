@@ -235,6 +235,7 @@ class Component:
         newComponent = Component([extraTerm],SOURCE_3D)
         print "The solution is:"
         newComponent.print_component()
+        newComponent.write_latex_equation()
 
     ### multiplies entire component by halfLZ
     def mult_halfLZ(self):
@@ -392,25 +393,52 @@ class Term:
         tmpstr = []
         tmpstr.append('& \\l[ ')
         for mySubTerm in self.subterm_list:
-            if(mySubTerm.coeff > 0.0):
-                tmpstr.append('+')
+
+            if(mySubTerm.coeff == 1.0):
+                mystr = ""
+            elif(mySubTerm.coeff == -1.0):
+                mystr = "- "
             else:
-                tmpstr.append(' ')
-            mystr = ' %7.5f ' % (mySubTerm.coeff)
+                ifrac = compare_fraction(mySubTerm.coeff)
+                if(ifrac >= 0):
+                    if(mySubTerm.coeff > 0.0):
+                        tmpstr.append('+ ')
+                    else:
+                        tmpstr.append('- ')
+
+                    thisPair = common_fractions[ifrac] 
+                    mystr = '\\frac{%i}{%i} ' % (thisPair[0],thisPair[1])
+                else: # no match, write a floating-point coefficient
+                    if(mySubTerm.coeff > 0.0):
+                        tmpstr.append('+ ')
+                    else:
+                        tmpstr.append(' ')
+                    mystr = ' %7.5f ' % (mySubTerm.coeff)
             tmpstr.append(mystr)
+
             if(mySubTerm.r_order > 0):
                 if(mySubTerm.r_order == 1):
                     tmpstr.append('\\opL_r ')
                 else:
-                    mystr = '\\opL_z^{%i} ' % mySubTerm.r_order
+                    mystr = '\\opL_r^{%i} ' % mySubTerm.r_order
                     tmpstr.append(mystr)
-            if(mySubTerm.z_order > 0):
-                if(mySubTerm.z_order == 1):
+
+            intzorder = int(mySubTerm.z_order)
+            if(intzorder > 0):
+                if(intzorder == 1):
                     tmpstr.append('\\opL_z ')
                 else:
-                    mystr = '\\opL_z^{%i} ' % mySubTerm.z_order
+                    mystr = '\\opL_z^{%i} ' % intzorder
                     tmpstr.append(mystr)
+
+            if(mySubTerm.r_order == 0 and intzorder == 0):
+                mystr = "I "
+                tmpstr.append(mystr)
+                
         tmpstr.append(' \\r] ')
+
+        if((2*mySubTerm.z_order)%2 == 1): # half LZ is present
+            tmpstr.append('\halfLZ ') 
 
         tmpstr.append(latex_expressions[self.TID])
         tmpstr.append(' \\nonumber \\\\ \n')
@@ -493,6 +521,21 @@ class Subterm:
     def print_info(self):
         print "Subterm: coeff = %.5f, Lr = %i, Lz = %i" % (self.coeff,self.r_order,self.z_order)
 
+class Counter:
+    def __init__(self,nvalues):
+        self.nvalues = nvalues
+        self.count_list = [0] * (nvalues+1)
+
+    def __del__(self):
+        self.nvalues = 0
+        self.count_list = []
+
+    def get_index(self,ID):
+        index = self.count_list[ID]
+        self.count_list[ID] += 1
+        return index
+
+
 # multiply two terms
 # retain TL component ID from first term
 def term_mult(myTerm, thatTerm):
@@ -528,19 +571,13 @@ def copy_subterm_list(thatSubTermList):
         newSubTermList.append(Subterm(mySubTerm.coeff,mySubTerm.r_order,mySubTerm.z_order) )
     return newSubTermList
 
-class Counter:
-    def __init__(self,nvalues):
-        self.nvalues = nvalues
-        self.count_list = [0] * (nvalues+1)
-
-    def __del__(self):
-        self.nvalues = 0
-        self.count_list = []
-
-    def get_index(self,ID):
-        index = self.count_list[ID]
-        self.count_list[ID] += 1
-        return index
+def compare_fraction(thatFloat):
+    for i in range(0,nfrac):
+        myPair = common_fractions[i]
+        myFloat = float(myPair[0])/float(myPair[1])
+        if(abs(myFloat - abs(thatFloat)) < THRESHOLD): # this is a match
+            return i           
+    return -1
 
 ### indexing for each TL component 
 
@@ -632,6 +669,29 @@ equation_labels   = ['',
                      'transport1D',
                      'scalarFlux',
                      'transport3D']
+
+##### commonly encountered fractions for LaTeX output
+common_fractions = [(1,3),
+                    (1,5),
+                    (1,7),
+                    (3,5),
+                    (3,7),
+                    (1,15),
+                    (1,21),
+                    (1,25),
+                    (2,25),
+                    (3,25),
+                    (1,35),
+                    (2,35),
+                    (3,35),
+                    (4,45),
+                    (6,45),
+                    (8,45),
+                  (44,945),
+                (606,9450)]
+
+nfrac = len(common_fractions)
+
 
 if __name__ == '__main__':
 

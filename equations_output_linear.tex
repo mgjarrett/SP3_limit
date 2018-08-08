@@ -1,113 +1,120 @@
 \begin{alignat}{2} 
 \label{eq:scalarFlux_0} 
 & \phi = \\ 
-& \l[ + 1.00000 + 0.33333 \opL_r + 0.20000 \opL_z^{2} + 0.14286 \opL_z^{3}  \r] \l[ F - \ATL \r] \nonumber \\ 
-& \l[ + 1.00000 + 0.60000 \opL_r + 0.42857 \opL_z^{2}  \r] \axaziTL \nonumber \\ 
+& \l[ I + \frac{1}{3} \opL_r + \frac{1}{5} \opL_r^{2} + \frac{1}{7} \opL_r^{3}  \r] \l[ F - \ATL \r] \nonumber \\ 
+& \l[ I + \frac{3}{5} \opL_r + \frac{3}{7} \opL_r^{2}  \r] \axaziTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:isoATL_0} 
 & \ATL = \\ 
-& \l[   -0.33333 \opL_z   -0.20000 \opL_z^{2}   -0.14286 \opL_z^{3}  \r] \l[ F - \RTL \r] \nonumber \\ 
-& \l[   -1.00000 \opL_z^{0}   -0.60000 \opL_z^{1}   -0.42857 \opL_z^{2}  \r] \radpolTL \nonumber \\ 
+& \l[ - \frac{1}{3} \opL_z - \frac{1}{5} \opL_z^{2} - \frac{1}{7} \opL_z^{3}  \r] \l[ F - \RTL \r] \nonumber \\ 
+& \l[ - I - \frac{3}{5} \opL_z - \frac{3}{7} \opL_z^{2}  \r] \halfLZ \radpolTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linradpolTL_0} 
 & \radpolTL = \\ 
-& \l[ + 0.20000 \opL_r + 0.08571 \opL_z^{2} + 0.04762 \opL_z^{3}  \r] \axpolTL \nonumber \\ 
+& \l[ + \frac{1}{5} \opL_r + \frac{3}{35} \opL_r^{2} + \frac{1}{21} \opL_r^{3}  \r] \axpolTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linaxpolTL_0} 
 & \axpolTL = \\ 
-& \l[ + 0.33333 \opL_z^{0} + 0.20000 \opL_z^{1} + 0.14286 \opL_z^{2}  \r] \l[ F - \RTL \r] \nonumber \\ 
-& \l[ + 0.60000 \opL_z + 0.42857 \opL_z^{2} + 0.33333 \opL_z^{3}  \r] \radpolTL \nonumber \\ 
+& \l[ + \frac{1}{3} I + \frac{1}{5} \opL_z + \frac{1}{7} \opL_z^{2}  \r] \halfLZ \l[ F - \RTL \r] \nonumber \\ 
+& \l[ + \frac{3}{5} \opL_z + \frac{3}{7} \opL_z^{2} + \frac{1}{3} \opL_z^{3}  \r] \radpolTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linradpolTL_1} 
 & \radpolTL = \\ 
-& \l[ + 0.20000 \opL_r + 0.08571 \opL_z^{2} + 0.04762 \opL_z^{3}  \r] \axpolTL \nonumber \\ 
+& \l[ + \frac{1}{5} \opL_r + \frac{3}{35} \opL_r^{2} + \frac{1}{21} \opL_r^{3}  \r] \axpolTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linaxpolTL_1} 
 & \axpolTL = \\ 
-& \l[ + 0.33333 \opL_z^{0} + 0.20000 \opL_z^{1} + 0.14286 \opL_z^{2}  \r] \l[ F - \RTL \r] \nonumber \\ 
-& \l[ + 0.60000 \opL_z + 0.42857 \opL_z^{2} + 0.33333 \opL_z^{3}  \r] \radpolTL \nonumber \\ 
+& \l[ + \frac{1}{3} I + \frac{1}{5} \opL_z + \frac{1}{7} \opL_z^{2}  \r] \halfLZ \l[ F - \RTL \r] \nonumber \\ 
+& \l[ + \frac{3}{5} \opL_z + \frac{3}{7} \opL_z^{2} + \frac{1}{3} \opL_z^{3}  \r] \radpolTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linradpolTL_2} 
 & \radpolTL = \\ 
-& \l[ + 0.06667 \opL_r \opL_z^{0} + 0.02857 \opL_z^{2} \opL_z^{0} + 0.04000 \opL_r \opL_z^{1}  \r] \l[ F - \RTL \r] \nonumber \\ 
-& \l[ + 0.12000 \opL_r \opL_z + 0.05143 \opL_z^{2} \opL_z + 0.08571 \opL_r \opL_z^{2}  \r] \radpolTL \nonumber \\ 
+& \l[ + \frac{1}{15} \opL_r + \frac{1}{35} \opL_r^{2} + \frac{1}{25} \opL_r \opL_z  \r] \halfLZ \l[ F - \RTL \r] \nonumber \\ 
+& \l[ + \frac{3}{25} \opL_r \opL_z +  0.05143 \opL_r^{2} \opL_z + \frac{3}{35} \opL_r \opL_z^{2}  \r] \radpolTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linradpolTL_3} 
 & \radpolTL = \\ 
-& \l[ + 0.06667 \opL_r \opL_z^{0} + 0.02857 \opL_z^{2} \opL_z^{0} + 0.04000 \opL_r \opL_z^{1}  \r] \l[ F - \RTL \r] \nonumber \\ 
+& \l[ + \frac{1}{15} \opL_r + \frac{1}{35} \opL_r^{2} + \frac{1}{25} \opL_r \opL_z  \r] \halfLZ \l[ F - \RTL \r] \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:isoATL_1} 
 & \ATL = \\ 
-& \l[   -0.33333 \opL_z   -0.20000 \opL_z^{2}   -0.14286 \opL_z^{3}   -0.06667 \opL_r \opL_z   -0.08000 \opL_r \opL_z^{2}   -0.02857 \opL_z^{2} \opL_z  \r] \l[ F - \RTL \r] \nonumber \\ 
+& \l[ - \frac{1}{3} \opL_z - \frac{1}{5} \opL_z^{2} - \frac{1}{7} \opL_z^{3} - \frac{1}{15} \opL_r \opL_z - \frac{2}{25} \opL_r \opL_z^{2} - \frac{1}{35} \opL_r^{2} \opL_z  \r] \l[ F - \RTL \r] \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:isoATL_2} 
 & \ATL = \\ 
-& \l[   -0.33333 \opL_z   -0.20000 \opL_z^{2}   -0.14286 \opL_z^{3}   -0.06667 \opL_r \opL_z   -0.08000 \opL_r \opL_z^{2}   -0.02857 \opL_z^{2} \opL_z  \r] \phi \nonumber \\ 
-& \l[   -0.33333 \opL_z   -0.20000 \opL_z^{2}   -0.14286 \opL_z^{3}   -0.06667 \opL_r \opL_z   -0.08000 \opL_r \opL_z^{2}   -0.02857 \opL_z^{2} \opL_z  \r] \ATL \nonumber \\ 
+& \l[ - \frac{1}{3} \opL_z - \frac{1}{5} \opL_z^{2} - \frac{1}{7} \opL_z^{3} - \frac{1}{15} \opL_r \opL_z - \frac{2}{25} \opL_r \opL_z^{2} - \frac{1}{35} \opL_r^{2} \opL_z  \r] \phi \nonumber \\ 
+& \l[ - \frac{1}{3} \opL_z - \frac{1}{5} \opL_z^{2} - \frac{1}{7} \opL_z^{3} - \frac{1}{15} \opL_r \opL_z - \frac{2}{25} \opL_r \opL_z^{2} - \frac{1}{35} \opL_r^{2} \opL_z  \r] \ATL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linaxaziTL_0} 
 & \axaziTL = \\ 
-& \l[ + 0.20000 \opL_z + 0.08571 \opL_z^{2} + 0.04762 \opL_z^{3}  \r] \radaziTL \nonumber \\ 
+& \l[ + \frac{1}{5} \opL_z + \frac{3}{35} \opL_z^{2} + \frac{1}{21} \opL_z^{3}  \r] \radaziTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linradaziTL_0} 
 & \radaziTL = \\ 
-& \l[ + 0.33333 \opL_r + 0.20000 \opL_z^{2} + 0.14286 \opL_z^{3}  \r] \l[ F - \ATL \r] \nonumber \\ 
-& \l[ + 0.60000 \opL_r + 0.42857 \opL_z^{2}  \r] \axaziTL \nonumber \\ 
+& \l[ + \frac{1}{3} \opL_r + \frac{1}{5} \opL_r^{2} + \frac{1}{7} \opL_r^{3}  \r] \l[ F - \ATL \r] \nonumber \\ 
+& \l[ + \frac{3}{5} \opL_r + \frac{3}{7} \opL_r^{2}  \r] \axaziTL \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:linaxaziTL_1} 
 & \axaziTL = \\ 
-& \l[ + 0.06667 \opL_r \opL_z + 0.02857 \opL_r \opL_z^{2} + 0.04000 \opL_z^{2} \opL_z  \r] \l[ F - \ATL \r] \nonumber \\ 
+& \l[ + \frac{1}{15} \opL_r \opL_z + \frac{1}{35} \opL_r \opL_z^{2} + \frac{1}{25} \opL_r^{2} \opL_z  \r] \l[ F - \ATL \r] \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:scalarFlux_1} 
 & \phi = \\ 
-& \l[ + 1.00000 + 0.33333 \opL_r + 0.20000 \opL_z^{2} + 0.14286 \opL_z^{3} + 0.06667 \opL_r \opL_z + 0.08000 \opL_z^{2} \opL_z + 0.02857 \opL_r \opL_z^{2}  \r] \l[ F - \ATL \r] \nonumber \\ 
+& \l[ I + \frac{1}{3} \opL_r + \frac{1}{5} \opL_r^{2} + \frac{1}{7} \opL_r^{3} + \frac{1}{15} \opL_r \opL_z + \frac{2}{25} \opL_r^{2} \opL_z + \frac{1}{35} \opL_r \opL_z^{2}  \r] \l[ F - \ATL \r] \nonumber \\ 
 \end{alignat} 
 
 
 \begin{alignat}{2} 
 \label{eq:scalarFlux_2} 
 & \phi = \\ 
-& \l[ + 1.00000 + 0.33333 \opL_r + 0.20000 \opL_z^{2} + 0.14286 \opL_z^{3} + 0.06667 \opL_r \opL_z + 0.08000 \opL_z^{2} \opL_z + 0.02857 \opL_r \opL_z^{2}  \r] F \nonumber \\ 
-& \l[   -1.00000   -0.33333 \opL_r   -0.20000 \opL_z^{2}   -0.14286 \opL_z^{3}   -0.06667 \opL_r \opL_z   -0.08000 \opL_z^{2} \opL_z   -0.02857 \opL_r \opL_z^{2}  \r] \ATL \nonumber \\ 
+& \l[ I + \frac{1}{3} \opL_r + \frac{1}{5} \opL_r^{2} + \frac{1}{7} \opL_r^{3} + \frac{1}{15} \opL_r \opL_z + \frac{2}{25} \opL_r^{2} \opL_z + \frac{1}{35} \opL_r \opL_z^{2}  \r] F \nonumber \\ 
+& \l[ - I - \frac{1}{3} \opL_r - \frac{1}{5} \opL_r^{2} - \frac{1}{7} \opL_r^{3} - \frac{1}{15} \opL_r \opL_z - \frac{2}{25} \opL_r^{2} \opL_z - \frac{1}{35} \opL_r \opL_z^{2}  \r] \ATL \nonumber \\ 
+\end{alignat} 
+
+
+\begin{alignat}{2} 
+\label{eq:transport3D_0} 
+& F = \\ 
+& \l[ I - \frac{1}{3} \opL_z - \frac{6}{45} \opL_r \opL_z - \frac{606}{9450} \opL_r^{2} \opL_z - \frac{606}{9450} \opL_r \opL_z^{2} - \frac{4}{45} \opL_z^{2} - \frac{44}{945} \opL_z^{3} - \frac{1}{3} \opL_r - \frac{4}{45} \opL_r^{2} - \frac{44}{945} \opL_r^{3}  \r] \phi \nonumber \\ 
 \end{alignat} 
 
 
