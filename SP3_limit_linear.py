@@ -14,6 +14,7 @@ import numpy as np
 import math
 import sys
 import time
+from subprocess import call
 
 ###################
 ### Code design ###
@@ -42,6 +43,19 @@ class ComponentList:
 
     def __del__(self):
         self.component_list = []
+
+    def ncomponents(self):
+        return len(self.component_list)
+
+    def add_component(self,thatComponent):
+        ic = 0
+        while(ic < self.ncomponents()):
+            if(self.component_list[ic].CID == thatComponent.CID):
+                del self.component_list[ic]
+            else:
+                ic += 1
+
+        self.component_list.append(thatComponent)
 
     def find_component(self,thatID):
         for myComponent in self.component_list:
@@ -91,8 +105,11 @@ class Component:
             else:
                 itx += 1
 
-        #add new term list to Component expression
+        # add new term list to Component expression
         self.term_list.extend(newTermList)
+
+        # combine any like terms that result from substitution
+        self.combine_terms()
 
     def combine_terms(self):
         itx = 0
@@ -142,7 +159,9 @@ class Component:
                 extraTerm.subterm_list.append(mySubTerm)
         else:
             ### TODO: if the first subterm is not I, then adjust the whole term
+            print "*********************************************************."
             print "We've run into a non-identity! Have to code for this case."
+            print "*********************************************************."
         
         ### negate each subterm
         for mySubTerm in extraTerm.subterm_list:
@@ -150,12 +169,7 @@ class Component:
 
         ### calculate x^2, x^3
         extraTerm_squared = term_mult(extraTerm,extraTerm)
-        #extraTerm_squared.remove_high_order()
-        #extraTerm_squared.combine_subterms()
-
         extraTerm_cubed = term_mult(extraTerm,extraTerm_squared)
-        #extraTerm_cubed.remove_high_order()
-        #extraTerm_cubed.combine_subterms()
          
         extraTerm.term_add(extraTerm_squared)
         extraTerm.term_add(extraTerm_cubed)
@@ -170,13 +184,57 @@ class Component:
         newTermList = []
         for myTerm in self.term_list:
             tmpTerm = term_mult(myTerm,extraTerm)
-            #tmpTerm.remove_high_order() 
-            #tmpTerm.combine_subterms() 
             newTermList.append(tmpTerm)
 
         self.term_list = newTermList
 
         self.reset_LHS()
+
+    # perform final solution for expression F = [ ... ] \phi
+    # requires that the component be an expression in the form \phi = [ ... ] F
+    def solve_F(self):
+
+        if(self.nterms() == 1 and 
+           self.term_list[0].TID == SOURCE_3D and
+           self.CID == SCALAR_FLUX):
+
+            extraTerm = Term([],SCALAR_FLUX)
+            FTerm = self.term_list[0]
+            if(FTerm.subterm_list[0].isIdentity):
+                for mySubTerm in FTerm.subterm_list[1:]:
+                    extraTerm.subterm_list.append(mySubTerm)
+            else:
+                ### TODO: if the first subterm is not I, then adjust the whole term
+                print "*********************************************************."
+                print "We've run into a non-identity! Have to code for this case."
+                print "*********************************************************."
+        else:
+            print "called solve_F but the component is not ready!"
+            self.print_component()
+
+        ### negate each subterm
+        for mySubTerm in extraTerm.subterm_list:
+            mySubTerm.coeff = -1.0*mySubTerm.coeff
+
+        ### calculate x^2, x^3
+        extraTerm_squared = term_mult(extraTerm,extraTerm)
+
+        extraTerm_cubed = term_mult(extraTerm,extraTerm_squared)
+         
+        extraTerm.term_add(extraTerm_squared)
+        extraTerm.term_add(extraTerm_cubed)
+
+        extraTerm.subterm_list.insert(0,Subterm(1.0,0,0))
+
+        ### now, extra term = I + x + x^2 + x^3
+        ### combine subterms
+        extraTerm.combine_subterms()
+        print "Extra term is:"
+        extraTerm.print_info()
+
+        newComponent = Component([extraTerm],SOURCE_3D)
+        print "The solution is:"
+        newComponent.print_component()
 
     ### multiplies entire component by halfLZ
     def mult_halfLZ(self):
@@ -202,6 +260,27 @@ class Component:
         print "My component terms: ID = %i (%s)" % (self.CID,variable_names[self.CID])
         for myterm in self.term_list:
             myterm.print_term()
+
+    def write_latex_equation(self):
+        texfile = open(texname,"a")
+
+        texstr = "\\begin{alignat}{2} \n"
+        texfile.write(texstr)
+        texstr = "\\label{eq:%s_%i} \n" % (equation_labels[self.CID],equation_counter.get_index(self.CID))
+        texfile.write(texstr)
+        #texstr = "%s = & \\nonumber \\\\ \n" % (latex_expressions[self.CID])
+        texstr = "& %s = \\\\ \n" % (latex_expressions[self.CID])
+        texfile.write(texstr)
+
+        for myTerm in self.term_list:
+            texstr = myTerm.write_term_latex()
+            texfile.write(texstr)
+
+        texstr = "\\end{alignat} \n"
+        texfile.write(texstr)
+        texstr = "\n"
+        texfile.write(texstr)
+        texfile.write(texstr)
 
 class Term:
     def __init__(self, subterm_list, variable_ID):
@@ -293,9 +372,9 @@ class Term:
         print "( ",
         for mySubTerm in self.subterm_list:
             if(mySubTerm.coeff > 0.0):
-                print "+",
+                print "+ ",
             else:
-                print " ",
+                print "",
             print "%7.5f" % (mySubTerm.coeff),
             if(mySubTerm.r_order > 0):
                 if(mySubTerm.r_order == 1):
@@ -308,6 +387,38 @@ class Term:
                 else:
                     print "Lz^%i" % mySubTerm.z_order,
         print ") "
+
+    def write_term_latex(self):
+        tmpstr = []
+        tmpstr.append('& \\l[ ')
+        for mySubTerm in self.subterm_list:
+            if(mySubTerm.coeff > 0.0):
+                tmpstr.append('+')
+            else:
+                tmpstr.append(' ')
+            mystr = ' %7.5f ' % (mySubTerm.coeff)
+            tmpstr.append(mystr)
+            if(mySubTerm.r_order > 0):
+                if(mySubTerm.r_order == 1):
+                    tmpstr.append('\\opL_r ')
+                else:
+                    mystr = '\\opL_z^{%i} ' % mySubTerm.r_order
+                    tmpstr.append(mystr)
+            if(mySubTerm.z_order > 0):
+                if(mySubTerm.z_order == 1):
+                    tmpstr.append('\\opL_z ')
+                else:
+                    mystr = '\\opL_z^{%i} ' % mySubTerm.z_order
+                    tmpstr.append(mystr)
+        tmpstr.append(' \\r] ')
+
+        tmpstr.append(latex_expressions[self.TID])
+        tmpstr.append(' \\nonumber \\\\ \n')
+
+        #print tmpstr
+        nospace = ''
+        #str_return = nospace.join(['\\l[','\\r]'])
+        return nospace.join(tmpstr)
 
 class Subterm:
     def __init__(self, coeff, r_order, z_order):
@@ -411,30 +522,58 @@ def subterm_mult(mySubTerm,thatSubTerm):
 
     return Subterm(coeff,r_order,z_order)
 
+def copy_subterm_list(thatSubTermList):
+    newSubTermList = []
+    for mySubTerm in thatSubTermList:
+        newSubTermList.append(Subterm(mySubTerm.coeff,mySubTerm.r_order,mySubTerm.z_order) )
+    return newSubTermList
+
+class Counter:
+    def __init__(self,nvalues):
+        self.nvalues = nvalues
+        self.count_list = [0] * (nvalues+1)
+
+    def __del__(self):
+        self.nvalues = 0
+        self.count_list = []
+
+    def get_index(self,ID):
+        index = self.count_list[ID]
+        self.count_list[ID] += 1
+        return index
+
 ### indexing for each TL component 
 
+### linear TL terms
 LIN_AX_POL   =  1
 LIN_AX_AZI   =  2
 LIN_RAD_POL  =  3
 LIN_RAD_AZI  =  4
+### quadratic TL terms
 QUAD_AX_POL  =  5
 QUAD_AX_AZI  =  6
 QUAD_AX_XXX  =  7
 QUAD_RAD_POL =  8
 QUAD_RAD_AZI =  9
 QUAD_RAD_XXX = 10
-### isotropic source terms
-SOURCE_2D    = 11 # F - dJ/dz
-SOURCE_1D    = 12 # F - (dJ/dx + dJ/dy)
 ### isotropic TL terms
-ISO_AX_TL    = 13 # dJ/dz
-ISO_RAD_TL   = 14 # (dJ/dx + dJ/dy)
-### flux (this is the component we ultimately need to solve for
+ISO_AX_TL    = 11 # dJ/dz
+ISO_RAD_TL   = 12 # (dJ/dx + dJ/dy)
+### isotropic source terms
+SOURCE_2D    = 13 # F - dJ/dz
+SOURCE_1D    = 14 # F - (dJ/dx + dJ/dy)
+### flux 
 SCALAR_FLUX  = 15
+### F: 3D source (this is the component we ultimately need to solve for)
+SOURCE_3D  = 16
 
+nID = 16
 
 THRESHOLD = 1.0E-6
 
+texname = "equations_output.tex"
+
+equation_counter = Counter(nID)
 
 # names for each TL component variable
 variable_names = ['null',
@@ -448,10 +587,54 @@ variable_names = ['null',
                   'Quadratic polar radial TL',
                   'Quadratic azimuthal radial TL',
                   'Quadratic cross moment radial TL',
+                  'Isotropic axial TL',
+                  'Isotropic radial TL',
                   'Isotropic 2D MOC source',
-                  'Isotropic 1D axial source']
+                  'Isotropic 1D axial source',
+                  'Scalar Flux',
+                  'Source (F)']
+
+latex_expressions = ['',
+                     '\\axpolTL',
+                     '\\axaziTL',
+                     '\\radpolTL',
+                     '\\radaziTL',
+                     '\\quadaxpolTL',
+                     '\\quadaxaziTL',
+                     '\\quadaxcrossTL',
+                     '\\quadradpolTL',
+                     '\\quadradaziTL',
+                     '\\quadradcrossTL',
+                     '\\ATL',
+                     '\\RTL',
+                     '\\l[ F - \ATL \\r]',
+                     '\\l[ F - \RTL \\r]',
+                     '\phi',
+                     'F']
+
+equation_labels   = ['',
+                     'linaxpolTL',
+                     'linaxaziTL',
+                     'linradpolTL',
+                     'linradaziTL',
+                     'quadaxpolTL',
+                     'quadaxaziTL',
+                     'quadaxcrossTL',
+                     'quadradpolTL',
+                     'quadradaziTL',
+                     'quadradcrossTL',
+                     'isoATL',
+                     'isoRTL',
+                     'transport2D',
+                     'transport1D',
+                     'scalarFlux',
+                     'transport3D']
 
 if __name__ == '__main__':
+
+
+    ### clear the equations_output.tex file
+    call(["rm",texname])
 
     #########################
     #### TESTING METHODS ####
@@ -599,12 +782,13 @@ if __name__ == '__main__':
 
         ### LIN_AX_AZI term
         tmpSubTermList   = [] 
-        tmpSubTermList.append(Subterm(1.0,0,0.5))
-        tmpSubTermList.append(Subterm(3.0/5.0,1,0.5))
-        tmpSubTermList.append(Subterm(3.0/7.0,2,0.5))
+        tmpSubTermList.append(Subterm(1.0,0,0))
+        tmpSubTermList.append(Subterm(3.0/5.0,1,0))
+        tmpSubTermList.append(Subterm(3.0/7.0,2,0))
         tmpTermList.append(Term(tmpSubTermList,LIN_AX_AZI))
 
         tmpComponentList.append(Component(tmpTermList,SCALAR_FLUX))
+        tmpComponentList[-1].write_latex_equation()
 
 
         ########### ISO_AX_TL component (dJ/dz) ##########
@@ -618,12 +802,13 @@ if __name__ == '__main__':
 
         ### LIN_RAD_POL term
         tmpSubTermList   = [] 
-        tmpSubTermList.append(Subterm(-1.0,0.5,0))
-        tmpSubTermList.append(Subterm(3.0/5.0,0.5,1))
-        tmpSubTermList.append(Subterm(3.0/7.0,0.5,2))
-        tmpTermList.append(Term(tmpSubTermList,LIN_AX_AZI))
+        tmpSubTermList.append(Subterm(-1.0,0,0.5))
+        tmpSubTermList.append(Subterm(-3.0/5.0,0,1.5))
+        tmpSubTermList.append(Subterm(-3.0/7.0,0,2.5))
+        tmpTermList.append(Term(tmpSubTermList,LIN_RAD_POL))
 
         tmpComponentList.append(Component(tmpTermList,ISO_AX_TL))
+        tmpComponentList[-1].write_latex_equation()
 
         ######### LIN_RAD_POL component (dJ/dz) #########
         tmpTermList      = [] 
@@ -634,6 +819,7 @@ if __name__ == '__main__':
         tmpTermList.append(Term(tmpSubTermList,LIN_AX_POL))
 
         tmpComponentList.append(Component(tmpTermList,LIN_RAD_POL))
+        tmpComponentList[-1].write_latex_equation()
 
         ######### LIN_AX_POL component (dJ/dz) #########
         tmpTermList      = [] 
@@ -652,25 +838,133 @@ if __name__ == '__main__':
         tmpSubTermList.append(Subterm(1.0/3.0,0,3))
         tmpTermList.append(Term(tmpSubTermList,LIN_RAD_POL))
         tmpComponentList.append(Component(tmpTermList,LIN_AX_POL))
+        tmpComponentList[-1].write_latex_equation()
 
         ### initialize the ComponentList object from the tmpComponentList 
         myComponentList = ComponentList(tmpComponentList)
 
         ### Eliminate the LIN_AX_POL component by substitution into the LIN_RAD_POL component 
+        ### (in the document, this is Eq. (33) into Eq. (34)
         linradpolComp = myComponentList.find_component(LIN_RAD_POL)
+        linradpolComp.write_latex_equation()
         linaxpolComp = myComponentList.find_component(LIN_AX_POL)
+        linaxpolComp.write_latex_equation()
         linradpolComp.substitute_component(linaxpolComp)
+        linradpolComp.write_latex_equation()
 
         print "Printing the new LIN_RAD_POL component:"
         linradpolComp.print_component()
         print "Solving the new LIN_RAD_POL component:"
         linradpolComp.solve()
         linradpolComp.print_component()
+        linradpolComp.write_latex_equation()
 
         ### we actually need to know d\dz 1/Sigma_t * LIN_RAD_POL = Lz^(1/2) * LIN_RAD_POL
-        linradpolComp.mult_halfLZ()
-        print "After multiplying through by halfLZ:"
-        linradpolComp.print_component()
+        #linradpolComp.mult_halfLZ()
+        #print "After multiplying through by halfLZ:"
+        #linradpolComp.print_component()
+
+        ### Eliminate the LIN_RAD_POL component in the ISO_AX_TL term
+        ### in the document, this is Eq. (39) into Eq. (31)
+        isoaxtlComp = myComponentList.find_component(ISO_AX_TL)
+        isoaxtlComp.substitute_component(linradpolComp)
+        print "Printing the ISO_AX_TL (dJ/dz) component:"
+        isoaxtlComp.print_component()
+        isoaxtlComp.write_latex_equation()
+
+        ### SOURCE_1D (F-(dJ/dx + dJ/dy)) is equivalent to SCALAR_FLUX + ISO_AX_TL ( \phi + dJ/dz )
+        newTermList = []
+        tmpSubTermList = isoaxtlComp.term_list[0].subterm_list
+        newTermList.append(Term(tmpSubTermList,SCALAR_FLUX))
+        newTermList.append(Term(tmpSubTermList,ISO_AX_TL))
+        newisoaxTLComp = Component(newTermList,ISO_AX_TL)
+        ### delete old component, overwrite with new one
+        myComponentList.add_component(newisoaxTLComp)
+        newisoaxTLComp.write_latex_equation()
+
+        ##E solve for ISO_AX_TL
+        newisoaxTLComp.solve()
+        print "Printing the solved ISO_AX_TL (dJ/dz) component:"
+        newisoaxTLComp.print_component()
+
+        ########### LIN_AX_AZI comonent #############
+        tmpTermList      = [] 
+        tmpSubTermList   = [] 
+        tmpSubTermList.append(Subterm(1.0/5.0,0,1))
+        tmpSubTermList.append(Subterm(3.0/35.0,0,2))
+        tmpSubTermList.append(Subterm(1.0/21.0,0,3))
+        tmpTermList.append(Term(tmpSubTermList,LIN_RAD_AZI))
+
+        myComponentList.add_component(Component(tmpTermList,LIN_AX_AZI))
+        myComponentList.component_list[-1].write_latex_equation()
+        
+        ########### LIN_RAD_AZI comonent #############
+        tmpTermList      = [] 
+
+        ### SOURCE_2D term
+        tmpSubTermList   = [] 
+        tmpSubTermList.append(Subterm(1.0/3.0,1,0))
+        tmpSubTermList.append(Subterm(1.0/5.0,2,0))
+        tmpSubTermList.append(Subterm(1.0/7.0,3,0))
+        tmpTermList.append(Term(tmpSubTermList,SOURCE_2D))
+
+        ### LIN_AX_AZI term
+        tmpSubTermList   = [] 
+        tmpSubTermList.append(Subterm(3.0/5.0,1,0))
+        tmpSubTermList.append(Subterm(3.0/7.0,2,0))
+        #tmpSubTermList.append(Subterm(1.0/3.0,3,0))
+        tmpTermList.append(Term(tmpSubTermList,LIN_AX_AZI))
+
+        myComponentList.add_component(Component(tmpTermList,LIN_RAD_AZI))
+        myComponentList.component_list[-1].write_latex_equation()
+
+        ### solve for LIN_AX_AZI
+        ### in document, substitute Eq. (45) into Eq. (44) and obtain (47)
+        linaxaziComp = myComponentList.find_component(LIN_AX_AZI)
+        linradaziComp = myComponentList.find_component(LIN_RAD_AZI)
+        linaxaziComp.substitute_component(linradaziComp)
+        linaxaziComp.solve()
+        print "Printing the solved LIN_AX_AZI component:"
+        linaxaziComp.print_component()
+        linaxaziComp.write_latex_equation()
+
+        ### solve for phi
+        scalarflxComp = myComponentList.find_component(SCALAR_FLUX)
+        scalarflxComp.substitute_component(linaxaziComp)
+        print "Printing the scalar flux component:"
+        scalarflxComp.print_component()
+        scalarflxComp.write_latex_equation()
+
+        ### SOURCE_2D = F - dJ/dz
+        newTermList = []
+        tmpSubTermList1 = copy_subterm_list(scalarflxComp.term_list[0].subterm_list)
+        tmpSubTermList2 = copy_subterm_list(scalarflxComp.term_list[0].subterm_list)
+        newTermList.append(Term(tmpSubTermList1,SOURCE_3D))
+        axTLterm = Term(tmpSubTermList2,ISO_AX_TL)
+        ### negate terms for axTLterm
+        for mySubTerm in axTLterm.subterm_list:
+            mySubTerm.coeff = -1.0*mySubTerm.coeff
+
+        print "tmpSubTermList 1:"
+        print newTermList[0].print_term()
+        print "tmpSubTermList 2:"
+        print axTLterm.print_term()
+
+        newTermList.append(axTLterm)
+        newphiComp = Component(newTermList,SCALAR_FLUX)
+        newphiComp.write_latex_equation()
+
+        newisoaxtlComp = myComponentList.find_component(ISO_AX_TL)
+        print "Iso AX TL component:"
+        newisoaxtlComp.print_component()
+        newphiComp.substitute_component(newisoaxtlComp)
+
+        ### Expression for PHI and F
+        newphiComp.print_component()
+        newphiComp.solve()
+
+        newphiComp.solve_F()
+
 
     #elif(order == 2): # quadratic
 
