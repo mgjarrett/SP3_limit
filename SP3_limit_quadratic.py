@@ -334,6 +334,7 @@ class Term:
                 if(tmpSubTerm1.match_order(tmpSubTerm2)):
                     tmpSubTerm1.subterm_add(tmpSubTerm2)
                     del self.subterm_list[x]
+
                 else:
                     x += 1 
             ist += 1
@@ -586,7 +587,42 @@ class Subterm:
     # add two subterms
     def subterm_add(self,thatSubTerm):
         if(self.match_order(thatSubTerm)):
+            oldcoeff = float(self.coeff)
             self.coeff = self.coeff + thatSubTerm.coeff 
+
+            have_frac = compare_fraction(self.coeff)
+            if((self.r_order + self.z_order) <= MAX_ORDER): # we need to find a fraction
+                if(have_frac == -1): # we didn't find the fraction! 
+                    if(abs(self.coeff) >= THRESHOLD):
+                        print "Didn't find the fraction in our list! The float %8.6e is the sum of " % abs(self.coeff)
+                        print "%16.14e and %16.14e" % (abs(oldcoeff),abs(thatSubTerm.coeff))
+                        i = compare_fraction(oldcoeff)
+                        j = compare_fraction(thatSubTerm.coeff)
+                        if(i >= 0):
+                            myPair1 = common_fractions[i]
+                        else:
+                            print "did not find fraction for coeff 1"
+                        if(j >= 0):
+                            myPair2 = common_fractions[j]
+                        else:
+                            print "did not find fraction for coeff 2"
+                        if(i >= 0 and j >= 0): 
+                            print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+                                         myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
+
+                        ### search for sum of two common fractions
+                        #[frac1,frac2] = compare_fraction_sum(coeff)
+                        #if(frac1 >= 0): # we found a match
+                        #    print "The float is the sum of two fractions:"
+                        #    
+                        #    myPair1 = common_fractions[frac1]
+                        #    myPair2 = common_fractions[frac2]
+                        #    print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+                        #                 myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
+ 
+                
+
+
         else:
             print "These terms don't add! my (r,z) = (%i,%i), their (r,z) = (%i,%i) " % (
                   (self.r_order,self.z_order,thatSubTerm.r_order,thatSubTerm.z_order)   )
@@ -650,6 +686,37 @@ def subterm_mult(mySubTerm,thatSubTerm):
     coeff = mySubTerm.coeff * thatSubTerm.coeff
     r_order = mySubTerm.r_order + thatSubTerm.r_order
     z_order = mySubTerm.z_order + thatSubTerm.z_order
+    have_frac = compare_fraction(coeff)
+    if((r_order + z_order) <= MAX_ORDER): # we need to find a fraction
+        if(have_frac == -1): # we didn't find the fraction! 
+            if(abs(coeff) >= THRESHOLD):
+                print "Didn't find the fraction in our list! The float %8.6e is the product of " % abs(coeff)
+                print "%16.14e and %16.14e" % (abs(mySubTerm.coeff),abs(thatSubTerm.coeff))
+                i = compare_fraction(mySubTerm.coeff)
+                j = compare_fraction(thatSubTerm.coeff)
+                if(i >= 0):
+                    myPair1 = common_fractions[i]
+                else:
+                    print "did not find fraction for coeff 1"
+                if(j >= 0):
+                    myPair2 = common_fractions[j]
+                else:
+                    print "did not find fraction for coeff 2"
+                if(i >= 0 and j >= 0): 
+                    print "%i/%i x %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+                                 myPair2[1],myPair1[0]*myPair2[0],myPair1[1]*myPair2[1])
+
+                ### search for sum of two common fractions
+                [frac1,frac2] = compare_fraction_sum(coeff)
+                if(frac1 >= 0): # we found a match
+                    print "The float is the sum of two fractions:"
+                    
+                    myPair1 = common_fractions[frac1]
+                    myPair2 = common_fractions[frac2]
+                    print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+                                 myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
+ 
+                
 
     return Subterm(coeff,r_order,z_order)
 
@@ -666,9 +733,20 @@ def compare_fraction(thatFloat):
     for i in range(0,nfrac):
         myPair = common_fractions[i]
         myFloat = float(myPair[0])/float(myPair[1])
-        if(abs(myFloat - abs(thatFloat)) < THRESHOLD): # this is a match
+        if(abs(myFloat - abs(thatFloat)) < THRESHOLD*abs(thatFloat)): # this is a match
             return i           
     return -1
+
+def compare_fraction_sum(thatFloat):
+    for i in range(0,nfrac):
+        for j in range(0,nfrac):
+            myPair1 = common_fractions[i]
+            myPair2 = common_fractions[j]
+            myFloat1 = float(myPair1[0])/float(myPair1[1])
+            myFloat2 = float(myPair2[0])/float(myPair2[1])
+            if(abs(myFloat1 + myFloat2 - abs(thatFloat)) < THRESHOLD*abs(thatFloat)): # this is a match
+                return [i,j]           
+    return [-1,-1]
 
 ### indexing for each TL component 
 
@@ -767,32 +845,146 @@ common_fractions = [(1,  3),
                     (1,  5),
                     (1,  7),
                     (1,  9),
+                    (1, 11),
                     (1, 15),
                     (1, 21),
                     (1, 25),
+                    (1, 27),
+                    (1, 33),
                     (1, 35),
+                    (1, 42),
+                    (1, 49),
                     (1, 63),
+                    (1, 75),
+                    (1, 99),
+                    (1,105),
+                    (1,125),
+                    (1,147),
+                    (1,175),
+                    (1,189),
+                    (1,231),
+                    (1,245),
+                    (1,343),
+                    (1,375),
+                    (1,735),
+                    (1,1715),
+                    (2,  3),
+                    (2,  5),
                     (2, 25),
                     (2, 35),
+                    (2, 45),
+                    (2, 49),
+                    (2, 75),
+                    (2,105),
+                    (2,125),
+                    (2,135),
+                    (2,147),
+                    (2,175),
+                    (2,245),
                     (3,  5),
                     (3,  7),
                     (3, 25),
                     (3, 35),
+                    (3, 49),
+                    (3,125),
+                    (3,175),
+                    (3,245),
+                    (3,343),
+                    (3,1715),
+                    (4, 35),
                     (4, 45),
+                    (4,105),
+                    (4,175),
+                    (4,245),
+                    (4,525),
                     (5,  3),
                     (5,  7),
                     (5,  9),
                     (5, 11),
                     (5, 21),
+                    (5, 27),
                     (5, 33),
+                    (5, 49),
                     (5, 63),
                     (5, 99),
                     (5,126),
+                    (5,147),
+                    (5,189),
+                    (5,231),
+                    (5,343),
+                    (5,441),
+                    (5,1715),
+                    (6, 35),
                     (6, 45),
+                    (6, 77),
+                    (6,125),
+                    (6,175),
+                    (6,245),
+                    (6,539),
+                    (6,875),
+                    (6,1125),
                     (8, 45),
+                    (8,105),
+                    (8,175),
+                    (8,245),
+                    (8,315),
+                    (8,525),
+                    (8,875),
+                    (8,1575),
+                    (9, 35),
                     (9, 49),
+                    (9,125),
+                    (9,175),
+                    (9,245),
+                   (10, 49),
+                   (10,189),
+                   (11,175),
+                   (12,175),
+                   (12,875),
+                   (12,245),
+                   (15,147),
+                   (16,175),
+                   (18,245),
+                   (18,875),
+                   (19,105),
+                   (22,2625),
+                   (24, 35),
+                   (24,245),
+                   (24,875),
+                   (25,441),
+                   (29,875),
+                   (30,539),
+                   (32,2625),
+                   (37,700),
+                   (39,225),
                    (44,945),
-                  (606,9450)]
+                   (46,675),
+                   (46,875),
+                   (62,147),
+                   (97,147),
+                   (97,735),
+                   (18,1225),
+                   (18,4375),
+                   (27,1225),
+                   (96,4900),
+                   (52,1575),
+                   (87,7875),
+                  (161,735),
+                  (101,1575),
+                  (101,3675),
+                  (106,4725),
+                  (112,1715),
+                  (162,7875),
+                  (252,8557),
+                  (252,8575),
+                  (372,1225),
+                  (348,6125),
+                  (592,3885),
+                  (696,6125),
+                  (548,18375),
+                  (938,42875),
+                  (3304,42875),
+                  (980,7203)]
 
 nfrac = len(common_fractions)
 
@@ -1444,6 +1636,56 @@ if __name__ == '__main__':
         quadaxaziTL_comp.write_latex_equation()
 
         ### solve the whole system
+        
+        ### 6) substitute LIN_AX_POL into LIN_AX_AZI, QUAD_AX_POL, QUAD_AX_AZI, QUAD_AX_XXX
+        linaxaziTL_comp.substitute_component(   linaxpolTL_comp)
+        quadaxpolTL_comp.substitute_component(  linaxpolTL_comp)
+        quadaxaziTL_comp.substitute_component(  linaxpolTL_comp)
+        quadaxcrossTL_comp.substitute_component(linaxpolTL_comp)
+
+        linaxaziTL_comp.solve()
+        ### 7) substitute LIN_AX_AZI into QUAD_AX_POL, QUAD_AX_AZI, QUAD_AX_XXX
+        quadaxpolTL_comp.substitute_component(  linaxaziTL_comp)
+        quadaxaziTL_comp.substitute_component(  linaxaziTL_comp)
+        quadaxcrossTL_comp.substitute_component(linaxaziTL_comp)
+
+        quadaxpolTL_comp.solve()
+        ### 8) substitute QUAD_AX_POL into QUAD_AX_AZI, QUAD_AX_XXX
+        quadaxaziTL_comp.substitute_component(  quadaxpolTL_comp)
+        quadaxcrossTL_comp.substitute_component(quadaxpolTL_comp)
+
+        quadaxaziTL_comp.solve()
+        ### 9) substitute QUAD_AX_AZI into QUAD_AX_XXX
+        quadaxcrossTL_comp.substitute_component(quadaxaziTL_comp)
+
+        quadaxcrossTL_comp.solve()
+        quadaxcrossTL_comp.write_latex_equation()
+        ### 10) solve for QUAD_AX_XXX and substitute into QUAD_AX_AZI
+        quadaxaziTL_comp.substitute_component(quadaxcrossTL_comp) 
+        quadaxaziTL_comp.solve()
+        quadaxcrossTL_comp.write_latex_equation()
+        
+        ### 11) substitute QUAD_AX_AZI and QUAD_AX_XXX into QUAD_AX_POL
+        quadaxpolTL_comp.substitute_component(quadaxcrossTL_comp) 
+        quadaxpolTL_comp.substitute_component(  quadaxaziTL_comp) 
+        quadaxpolTL_comp.solve()
+        quadaxpolTL_comp.write_latex_equation()
+        
+        ### 12) substitute QUAD_AX_POL, QUAD_AX_AZI and QUAD_AX_XXX into LIN_AX_AZI
+        linaxaziTL_comp.substitute_component(quadaxcrossTL_comp) 
+        linaxaziTL_comp.substitute_component(  quadaxaziTL_comp) 
+        linaxaziTL_comp.substitute_component(  quadaxpolTL_comp) 
+        linaxaziTL_comp.solve()
+        linaxaziTL_comp.write_latex_equation()
+        
+        ### 13) substitute LIN_AX_AZI, QUAD_AX_POL, QUAD_AX_AZI and QUAD_AX_XXX into LIN_AX_POL
+        linaxpolTL_comp.substitute_component(quadaxcrossTL_comp) 
+        linaxpolTL_comp.substitute_component(  quadaxaziTL_comp) 
+        linaxpolTL_comp.substitute_component(  quadaxpolTL_comp) 
+        linaxpolTL_comp.substitute_component(   linaxaziTL_comp) 
+        linaxpolTL_comp.solve()
+        linaxpolTL_comp.write_latex_equation()
+        
 
 
     #logname = "logfile"
