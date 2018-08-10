@@ -144,11 +144,9 @@ class Component:
             newSubTermList = []
             if(myTerm.TID == self.CID):
                 for mySubTerm in myTerm.subterm_list:
-                    #mySubTerm.numerator.insert(0,-1)
-                    mySubTerm.sign = -1*mySubTerm.sign
-                    #newSubTermList.append(Subterm(mySubTerm.numerator,mySubTerm.denominator,
-                    #    mySubTerm.r_order,mySubTerm.z_order))
-                    newSubTermList.append(copy_subterm(mySubTerm))
+                    newSubTerm = copy_subterm(mySubTerm)
+                    newSubTerm.sign = -1*mySubTerm.sign
+                    newSubTermList.append(newSubTerm)
                 self.LHS.subterm_list.extend(newSubTermList)
                 del self.term_list[itx]
             itx += 1
@@ -171,8 +169,6 @@ class Component:
         
         ### negate each subterm
         for mySubTerm in extraTerm.subterm_list:
-            #mySubTerm.coeff = -1.0*mySubTerm.coeff
-            #mySubTerm.numerator.insert(0,[-1])
             mySubTerm.sign = -1*mySubTerm.sign
 
         ### calculate x^2, x^3
@@ -202,6 +198,8 @@ class Component:
     # perform final solution for expression F = [ ... ] \phi
     # requires that the component be an expression in the form \phi = [ ... ] F
     def solve_F(self):
+        self.remove_high_order()
+        self.combine_terms()
 
         if(self.nterms() == 1 and 
            self.term_list[0].TID == SOURCE_3D and
@@ -211,7 +209,10 @@ class Component:
             FTerm = self.term_list[0]
             if(FTerm.subterm_list[0].isIdentity):
                 for mySubTerm in FTerm.subterm_list[1:]:
-                    extraTerm.subterm_list.append(mySubTerm)
+                    newSubTerm = copy_subterm(mySubTerm)
+                    #newSubTerm.sign = -1*mySubTerm.sign
+                    extraTerm.subterm_list.append(newSubTerm)
+
             else:
                 ### TODO: if the first subterm is not I, then adjust the whole term
                 print "*********************************************************."
@@ -228,10 +229,15 @@ class Component:
             mySubTerm.sign = -1*mySubTerm.sign
 
         ### calculate x^2, x^3
+        print "extraTerm subterms:"
+        extraTerm.print_term()
+        print "calculating extraTerm_squared. subterms:"
         extraTerm_squared = term_mult(extraTerm,extraTerm)
-
+        extraTerm_squared.print_term()
+        print "calculating extraTerm_cubed. subterms:"
         extraTerm_cubed = term_mult(extraTerm,extraTerm_squared)
-         
+        extraTerm_cubed.print_term()
+
         extraTerm.term_add(extraTerm_squared)
         extraTerm.term_add(extraTerm_cubed)
 
@@ -334,6 +340,7 @@ class Term:
     def term_add(self, otherTerm):
         if(self.TID == otherTerm.TID):
             self.subterm_list.extend(otherTerm.subterm_list)
+            self.combine_subterms()
         else:
             print "These terms don't add! myTermID = %i, otherTermID = %i" % (self.TID,otherTerm.TID)
         del otherTerm
@@ -647,21 +654,65 @@ class Subterm:
     def subterm_add(self,thatSubTerm):
         if(self.match_order(thatSubTerm)):
 
+            tmpStore    = Subterm(1.0,0,0)
+            tmpStore.numerator = list(self.denominator)
+            tmpStore.denominator = list(thatSubTerm.denominator)
+
+            ### reduce fractions
+            common_factors = tmpStore.find_common_factors()
+            #tmpStore.reduce_fraction()
+
+            ### compute sum of the two fractions
+            numeratorA = self.get_numerator() * tmpStore.get_denominator()
+            numeratorB = tmpStore.get_numerator() * thatSubTerm.get_numerator()
+            tmpNum = self.sign*numeratorA + thatSubTerm.sign*numeratorB 
+            if(tmpNum >= 0.0):
+                self.sign = 1
+            else:
+                self.sign = -1
+            #tmpSubTerm1.denominator.extend(tmpSubTerm2.denominator)
+            tmpStore.denominator.extend(tmpStore.numerator)
+            tmpStore.denominator.extend(common_factors)
+            self.denominator = tmpStore.denominator
+
+            ### old way
             #print "Adding two terms: term1 = %i/%i, term2 = %i/%i" % (self.get_numerator(),
             #   self.get_denominator(),thatSubTerm.get_numerator(),thatSubTerm.get_denominator())
-            tmpNum = ( self.get_numerator()   * thatSubTerm.get_denominator() +  
-                       self.get_denominator() * thatSubTerm.get_numerator() )
+            ### calculate numerator
+            #numeratorA = self.get_numerator() * thatSubTerm.get_denominator()
+            #numeratorB = self.get_denominator() * thatSubTerm.get_numerator()
+            #print "numeratorA = %6.1f, numeratorB = %6.1f" % (numeratorA,numeratorB)
+            #tmpNum = self.sign*numeratorA + thatSubTerm.sign*numeratorB
+
             #tmpDenom = self.get_denominator() * thatSubTerm.get_denominator()
-            self.denominator.extend(thatSubTerm.denominator)
+            #self.denominator.extend(thatSubTerm.denominator)
 
             #print "tmpnum = %i, tmpDenom = %i" % (tmpNum, tmpDenom)
-            self.numerator = compute_prime_factors(tmpNum)
+            self.numerator = compute_prime_factors(int(abs(tmpNum)))
             #self.denominator = compute_prime_factors(tmpDenom)
             self.reduce_fraction()
 
         else:
             print "These terms don't add! my (r,z) = (%i,%i), their (r,z) = (%i,%i) " % (
                   (self.r_order,self.z_order,thatSubTerm.r_order,thatSubTerm.z_order)   )
+
+    def find_common_factors(self):
+        # find common factors between numerator and denominator
+        # this is used for adding two fractions
+        common_factors = []
+        ifac = 0
+        while(ifac < self.nnumer()):
+            jfac = 0
+            while(jfac < self.ndenom() and ifac < self.nnumer()):
+                if(self.numerator[ifac] == self.denominator[jfac]):
+                    common_factors.append(int(self.numerator[ifac]))
+                    del self.numerator[ifac]
+                    del self.denominator[jfac]
+                else:
+                    jfac += 1
+            ifac += 1
+
+        return common_factors
 
     # determine if r_order and z_order matches that of another subterm
     def match_order(self,thatSubTerm):
@@ -717,7 +768,8 @@ def term_mult(myTerm, thatTerm):
     
     newTerm = Term(newSubTermList,myTerm.TID)
     newTerm.remove_high_order()
-    newTerm.combine_subterms()
+    ### combining subterms
+    newTerm.print_info()
     newTerm.sort_subterms()
 
     return newTerm
@@ -731,6 +783,8 @@ def subterm_mult(mySubTerm,thatSubTerm):
     newSubTerm.numerator.extend(thatCopy.numerator)
     newSubTerm.denominator.extend(thatCopy.denominator)
     newSubTerm.reduce_fraction()
+
+    newSubTerm.sign = mySubTerm.sign*thatSubTerm.sign
 
     newSubTerm.r_order = mySubTerm.r_order + thatSubTerm.r_order
     newSubTerm.z_order = mySubTerm.z_order + thatSubTerm.z_order
@@ -830,7 +884,7 @@ MAX_ORDER = 3
 THRESHOLD = 1.0E-6
 
 if(int(sys.argv[1]) == 1):
-    texname = "equations_output_linear.tex"
+    texname = "equations_output_integer_linear.tex"
 if(int(sys.argv[1]) == 2):
     texname = "equations_output_integer.tex"
 
@@ -1149,10 +1203,12 @@ if __name__ == '__main__':
         print "Iso AX TL component:"
         newisoaxtlComp.print_component()
         newphiComp.substitute_component(newisoaxtlComp)
+        newisoaxtlComp.write_latex_equation()
 
         ### Expression for PHI and F
         newphiComp.print_component()
         newphiComp.solve()
+        newphiComp.write_latex_equation()
 
         newphiComp.solve_F()
 
@@ -1665,7 +1721,98 @@ if __name__ == '__main__':
         linaxpolTL_comp.substitute_component(   linaxaziTL_comp) 
         linaxpolTL_comp.solve()
         linaxpolTL_comp.write_latex_equation()
-        
+
+        ### 14) Substitute LIN_AX_AZI, QUAD_AX_POL, and QUAD_AX_AZI into LIN_RAD_AZI
+        linradaziTL_comp.substitute_component(linaxaziTL_comp)
+        linradaziTL_comp.substitute_component(quadaxpolTL_comp)
+        linradaziTL_comp.substitute_component(quadaxaziTL_comp)
+        linradaziTL_comp.write_latex_equation()
+
+        ### 15) Substitute LIN_AX_AZI, QUAD_AX_POL, and QUAD_AX_AZI into QUAD_RAD_AZI
+        quadradaziTL_comp.substitute_component(linaxaziTL_comp)
+        quadradaziTL_comp.substitute_component(quadaxpolTL_comp)
+        quadradaziTL_comp.substitute_component(quadaxaziTL_comp)
+        quadradaziTL_comp.write_latex_equation()
+
+        ### 16) Substitute LIN_AX_AZI, QUAD_AX_POL, and QUAD_AX_AZI into QUAD_RAD_POL
+        quadradpolTL_comp.substitute_component(linaxaziTL_comp)
+        quadradpolTL_comp.substitute_component(quadaxpolTL_comp)
+        quadradpolTL_comp.substitute_component(quadaxaziTL_comp)
+        quadradpolTL_comp.write_latex_equation()
+
+        ### 17) Substitute LIN_AX_POL, QUAD_AX_XXX into LIN_RAD_POL
+        linradpolTL_comp.substitute_component(linaxpolTL_comp)
+        linradpolTL_comp.substitute_component(quadaxcrossTL_comp)
+        linradpolTL_comp.write_latex_equation()
+
+        ### 18) Substitute LIN_AX_POL, QUAD_AX_XXX into QUAD_RAD_XXX
+        quadradcrossTL_comp.substitute_component(linaxpolTL_comp)
+        quadradcrossTL_comp.substitute_component(quadaxcrossTL_comp)
+        quadradcrossTL_comp.write_latex_equation()
+
+        ### 19) Substitute LIN_AX_AZI, QUAD_AX_POL, QUAD_AX_AZI into SCALAR_FLUX
+        scalarFlux_comp = myComponentList.find_component(SCALAR_FLUX)
+        scalarFlux_comp.substitute_component( linaxaziTL_comp)
+        scalarFlux_comp.substitute_component(quadaxpolTL_comp)
+        scalarFlux_comp.substitute_component(quadaxaziTL_comp)
+        scalarFlux_comp.write_latex_equation()
+
+        ### 20) SOURCE_1D term (F - \RTL) = (Sigma_t \phi + dJ/dz)
+        ########### ISO_RAD_TL component (dJ/dx + dJ/dy) ##########
+        tmpTermList      = [] 
+        tmpSubTermList      = [] 
+        tmpSubTermList.append(Subterm(1.0,0,0))
+        tmpTermList.append(Term(tmpSubTermList,SCALAR_FLUX))
+        tmpTermList.append(Term(tmpSubTermList,ISO_AX_TL))
+        myComponentList.add_component(Component(tmpTermList,SOURCE_1D))
+
+        ### 21) Substitute ISO_RAD_TL into SCALAR_FLUX
+        #isoradTL_comp = myComponentList.find_component(ISO_RAD_TL)
+        #"print isoradTL_comp:"
+        #isoradTL_comp.print_component()
+        #scalarFlux_comp.substitute_component(isoradTL_comp)
+        #scalarFlux_comp.solve()
+        #scalarFlux_comp.write_latex_equation()
+        source1D_comp = myComponentList.find_component(SOURCE_1D)
+        "print isoradTL_comp:"
+        source1D_comp.print_component()
+        scalarFlux_comp.substitute_component(source1D_comp)
+        scalarFlux_comp.solve()
+        scalarFlux_comp.write_latex_equation()
+
+        ### 22) SOURCE_2D = SOURCE_3D - ISO_AX_TL
+        tmpTermList      = [] 
+        tmpSubTermList      = [] 
+        tmpSubTermList.append(Subterm(1.0,0,0))
+        tmpTermList.append(Term(tmpSubTermList,SOURCE_3D))
+        tmpSubTermList      = [] 
+        tmpSubTermList.append(Subterm(-1.0,0,0))
+        tmpTermList.append(Term(tmpSubTermList,ISO_AX_TL))
+        myComponentList.add_component(Component(tmpTermList,SOURCE_2D))
+        source2D_comp = myComponentList.find_component(SOURCE_2D)
+
+        ### 23) Substitute SOURCE_2D into SCALAR_FLUX
+        scalarFlux_comp.substitute_component(source2D_comp)
+        scalarFlux_comp.write_latex_equation()
+
+        ### 24) Solve ISO_AX_TL (substitute LIN_RAD_AZI, QUAD_RAD_AZI, QUAD_RAD_POL)
+        ###     substitute SOURCE_2D = SOURCE_3D - ISO_AX_TL to solve
+        isoaxTL_comp = myComponentList.find_component(ISO_AX_TL)
+        isoaxTL_comp.substitute_component( linradpolTL_comp)
+        isoaxTL_comp.substitute_component(quadradaziTL_comp)
+        isoaxTL_comp.substitute_component(quadradpolTL_comp)
+
+        isoaxTL_comp.substitute_component(source1D_comp)
+        isoaxTL_comp.substitute_component(source2D_comp)
+        isoaxTL_comp.solve()
+        isoaxTL_comp.write_latex_equation()
+  
+        ### 25) Substitute ISO_AX_TL into SCALAR_FLUX
+        scalarFlux_comp.substitute_component(isoaxTL_comp)
+        scalarFlux_comp.solve()
+        scalarFlux_comp.write_latex_equation()
+        scalarFlux_comp.solve_F()
+        scalarFlux_comp.write_latex_equation()
 
     #logname = "logfile"
     #
