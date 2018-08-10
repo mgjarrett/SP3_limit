@@ -446,28 +446,6 @@ class Term:
                         tmpstr.append('- ')
 
                 mystr = '\\frac{%i}{%i} ' % (mySubTerm.get_numerator(),mySubTerm.get_denominator())
-                #ifrac = compare_fraction(mySubTerm.coeff_float())
-                #if(ifrac >= 0):
-                #    if(mySubTerm.coeff_float() > 0.0 or allneg):
-                #        if(not firstTerm): 
-                #            tmpstr.append('+ ')
-                #    else:
-                #        if(not firstTerm):
-                #            tmpstr.append('- ')
-
-                #    thisPair = common_fractions[ifrac] 
-                #    mystr = '\\frac{%i}{%i} ' % (thisPair[0],thisPair[1])
-                #else: # no match, write a floating-point coefficient
-                #    if(mySubTerm.coeff_float() > 0.0 or allneg):
-                #        if(not firstTerm):
-                #            tmpstr.append('+ ')
-                #    else:
-                #        if(not firstTerm):
-                #            tmpstr.append(' ')
-                #    if(allneg):
-                #        mystr = ' %7.5f ' % (abs(mySubTerm.coeff_float()))
-                #    else:
-                #        mystr = ' %7.5f ' % (mySubTerm.coeff_float())
             tmpstr.append(mystr)
 
             if(mySubTerm.r_order > 0):
@@ -620,13 +598,6 @@ class Subterm:
     def ndenom(self):
         return len(self.denominator)
 
-    #@property
-    #def coeff(self):
-    #    return self.coeff
-    #@coeff.setter
-    #def coeff(self,number):
-    #    self.coeff = number
-
     def coeff_float(self):
         numval = self.get_numerator()
         denomval = self.get_denominator()
@@ -772,8 +743,6 @@ def subterm_mult(mySubTerm,thatSubTerm):
 def copy_subterm_list(thatSubTermList):
     newSubTermList = []
     for mySubTerm in thatSubTermList:
-        #newSubTermList.append(Subterm(mySubTerm.coeff,mySubTerm.r_order,mySubTerm.z_order) )
-        #newSubTermList.append(Subterm(mySubTerm.numerator,mySubTerm.denominator,mySubTerm.r_order,mySubTerm.z_order) )
         newSubTermList.append(copy_subterm(mySubTerm))
     return newSubTermList
 
@@ -783,8 +752,6 @@ def copy_subterm(thatSubTerm):
     newSubTermCopy.denominator = list(thatSubTerm.denominator)
     newSubTermCopy.sign = thatSubTerm.sign
     return newSubTermCopy
-    #return Subterm(thatSubTerm.coeff,thatSubTerm.r_order,thatSubTerm.z_order)
-    #return Subterm(thatSubTerm.numerator,thatSubTerm.denominator,thatSubTerm.r_order,thatSubTerm.z_order)
 
 def compare_fraction(thatFloat):
     for i in range(0,nfrac):
@@ -818,7 +785,6 @@ def compute_prime_factors(myInt):
             #if(is_prime(i)):
 
     return factor_list
-
 
 #def is_prime(n):
 #  if(n == 2 or n == 3): return True
@@ -978,153 +944,7 @@ common_fractions = [(1,  1),
                     (7,105),
                     (7,126)]
 
-#common_fractions = [(1,  3),
-#                    (1,  5),
-#                    (1,  7),
-#                    (1,  9),
-#                    (1, 11),
-#                    (1, 15),
-#                    (1, 21),
-#                    (1, 25),
-#                    (1, 27),
-#                    (1, 33),
-#                    (1, 35),
-#                    (1, 42),
-#                    (1, 49),
-#                    (1, 63),
-#                    (1, 75),
-#                    (1, 99),
-#                    (1,105),
-#                    (1,125),
-#                    (1,147),
-#                    (1,175),
-#                    (1,189),
-#                    (1,231),
-#                    (1,245),
-#                    (1,343),
-#                    (1,375),
-#                    (1,735),
-#                    (1,1715),
-#                    (2,  3),
-#                    (2,  5),
-#                    (2, 25),
-#                    (2, 35),
-#                    (2, 45),
-#                    (2, 49),
-#                    (2, 75),
-#                    (2,105),
-#                    (2,125),
-#                    (2,135),
-#                    (2,147),
-#                    (2,175),
-#                    (2,245),
-#                    (3,  5),
-#                    (3,  7),
-#                    (3, 25),
-#                    (3, 35),
-#                    (3, 49),
-#                    (3,125),
-#                    (3,175),
-#                    (3,245),
-#                    (3,343),
-#                    (3,1715),
-#                    (4, 35),
-#                    (4, 45),
-#                    (4,105),
-#                    (4,175),
-#                    (4,245),
-#                    (4,525),
-#                    (5,  3),
-#                    (5,  7),
-#                    (5,  9),
-#                    (5, 11),
-#                    (5, 21),
-#                    (5, 27),
-#                    (5, 33),
-#                    (5, 49),
-#                    (5, 63),
-#                    (5, 99),
-#                    (5,126),
-#                    (5,147),
-#                    (5,189),
-#                    (5,231),
-#                    (5,343),
-#                    (5,441),
-#                    (5,1715),
-#                    (6, 35),
-#                    (6, 45),
-#                    (6, 77),
-#                    (6,125),
-#                    (6,175),
-#                    (6,245),
-#                    (6,539),
-#                    (6,875),
-#                    (6,1125),
-#                    (8, 45),
-#                    (8,105),
-#                    (8,175),
-#                    (8,245),
-#                    (8,315),
-#                    (8,525),
-#                    (8,875),
-#                    (8,1575),
-#                    (9, 35),
-#                    (9, 49),
-#                    (9,125),
-#                    (9,175),
-#                    (9,245),
-#                   (10, 49),
-#                   (10,189),
-#                   (11,175),
-#                   (12,175),
-#                   (12,875),
-#                   (12,245),
-#                   (15,147),
-#                   (16,175),
-#                   (18,245),
-#                   (18,875),
-#                   (19,105),
-#                   (22,2625),
-#                   (24, 35),
-#                   (24,245),
-#                   (24,875),
-#                   (25,441),
-#                   (29,875),
-#                   (30,539),
-#                   (32,2625),
-#                   (37,700),
-#                   (39,225),
-#                   (44,945),
-#                   (46,675),
-#                   (46,875),
-#                   (62,147),
-#                   (97,147),
-#                   (97,735),
-#                   (18,1225),
-#                   (18,4375),
-#                   (27,1225),
-#                   (96,4900),
-#                   (52,1575),
-#                   (87,7875),
-#                  (161,735),
-#                  (101,1575),
-#                  (101,3675),
-#                  (106,4725),
-#                  (112,1715),
-#                  (162,7875),
-#                  (252,8557),
-#                  (252,8575),
-#                  (372,1225),
-#                  (348,6125),
-#                  (592,3885),
-#                  (696,6125),
-#                  (548,18375),
-#                  (938,42875),
-#                  (3304,42875),
-#                  (980,7203)]
-
 nfrac = len(common_fractions)
-
 
 if __name__ == '__main__':
 
@@ -1846,7 +1666,6 @@ if __name__ == '__main__':
         linaxpolTL_comp.solve()
         linaxpolTL_comp.write_latex_equation()
         
-
 
     #logname = "logfile"
     #
