@@ -66,8 +66,8 @@ class Component:
     def __init__(self, term_list, myTL_ID):
         self.term_list = term_list
         self.CID = myTL_ID
-        #self.LHS = Term([Subterm(1.0,0,0)], myTL_ID)
-        self.LHS = Term([Subterm([],[],0,0)], myTL_ID)
+        self.LHS = Term([Subterm(1.0,0,0)], myTL_ID)
+        #self.LHS = Term([Subterm([],[],0,0)], myTL_ID)
 
     def __del__(self):
         self.term_list = []
@@ -146,8 +146,9 @@ class Component:
                 for mySubTerm in myTerm.subterm_list:
                     #mySubTerm.numerator.insert(0,-1)
                     mySubTerm.sign = -1*mySubTerm.sign
-                    newSubTermList.append(Subterm(mySubTerm.numerator,mySubTerm.denominator,
-                        mySubTerm.r_order,mySubTerm.z_order))
+                    #newSubTermList.append(Subterm(mySubTerm.numerator,mySubTerm.denominator,
+                    #    mySubTerm.r_order,mySubTerm.z_order))
+                    newSubTermList.append(copy_subterm(mySubTerm))
                 self.LHS.subterm_list.extend(newSubTermList)
                 del self.term_list[itx]
             itx += 1
@@ -175,14 +176,24 @@ class Component:
             mySubTerm.sign = -1*mySubTerm.sign
 
         ### calculate x^2, x^3
+        print "ExtraTerm: "
+        extraTerm.print_info()
         extraTerm_squared = term_mult(extraTerm,extraTerm)
+        print "ExtraTerm after square: "
+        extraTerm.print_info()
         extraTerm_cubed = term_mult(extraTerm,extraTerm_squared)
+        print "ExtraTerm after cube: "
+        extraTerm.print_info()
          
         extraTerm.term_add(extraTerm_squared)
+        print "ExtraTerm add square: "
+        extraTerm.print_info()
         extraTerm.term_add(extraTerm_cubed)
+        print "ExtraTerm add cube: "
+        extraTerm.print_info()
 
-        #extraTerm.subterm_list.insert(0,Subterm(1.0,0,0))
-        extraTerm.subterm_list.insert(0,Subterm([],[],0,0))
+        extraTerm.subterm_list.insert(0,Subterm(1.0,0,0))
+        #extraTerm.subterm_list.insert(0,Subterm([],[],0,0))
 
         ### now, extra term = I + x + x^2 + x^3
         print "Extra term is:"
@@ -234,7 +245,8 @@ class Component:
         extraTerm.term_add(extraTerm_squared)
         extraTerm.term_add(extraTerm_cubed)
 
-        extraTerm.subterm_list.insert(0,Subterm([],[],0,0))
+        extraTerm.subterm_list.insert(0,Subterm(1.0,0,0))
+        #extraTerm.subterm_list.insert(0,Subterm([],[],0,0))
 
         ### now, extra term = I + x + x^2 + x^3
         ### combine subterms
@@ -251,8 +263,8 @@ class Component:
 
     ### multiplies entire component by halfLZ
     def mult_halfLZ(self):
-        #halfLZterm = Term([Subterm(1.0,0,0.5)],0)
-        halfLZterm = Term([Subterm([],[],0,0.5)],0)
+        halfLZterm = Term([Subterm(1.0,0,0.5)],0)
+        #halfLZterm = Term([Subterm([],[],0,0.5)],0)
         newTermList = []
         for myTerm in self.term_list:
             tmpTerm = term_mult(myTerm,halfLZterm)
@@ -262,8 +274,8 @@ class Component:
 
     def reset_LHS(self):
         self.LHS.subterm_list = []
-        #self.LHS = Term([Subterm(1.0,0,0)],0)
-        self.LHS = Term([Subterm([],[],0,0)],0)
+        self.LHS = Term([Subterm(1.0,0,0)],0)
+        #self.LHS = Term([Subterm([],[],0,0)],0)
 
 
     def print_info(self):
@@ -288,6 +300,10 @@ class Component:
         texfile.write(texstr)
 
         for myTerm in self.term_list:
+            print "nsubterms = %i" % myTerm.nsubterms()
+            print "Printing term info:"
+            myTerm.print_info()
+            print "done printing term info:"
             texstr = myTerm.write_term_latex()
             texfile.write(texstr)
 
@@ -413,6 +429,7 @@ class Term:
         allneg = True
         for mySubTerm in self.subterm_list:
             #if(mySubTerm.coeff_float() > 0.0):
+            print "mySubTerm.sign = %i" % mySubTerm.sign
             if(mySubTerm.sign == 1):
                 allneg = False
 
@@ -425,9 +442,9 @@ class Term:
         firstTerm = True
         for mySubTerm in self.subterm_list:
 
-            if(mySubTerm.coeff_float() == 1.0):
+            if(mySubTerm.sign == 1):
                 mystr = ""
-            elif(mySubTerm.coeff_float() == -1.0):
+            elif(mySubTerm.sign == -1):
                 if(allneg == False):
                     mystr = "- "
                 else:
@@ -488,7 +505,7 @@ class Term:
                 
         tmpstr.append(' \\r] ')
 
-        if((2*mySubTerm.z_order)%2 == 1): # half LZ is present
+        if((2*self.subterm_list[0].z_order)%2 == 1): # half LZ is present
             tmpstr.append('\halfLZ ') 
 
         tmpstr.append(latex_expressions[self.TID])
@@ -559,12 +576,27 @@ class Term:
             
 
 class Subterm:
-    def __init__(self, numerator, denominator, r_order, z_order):
-        self.numerator = numerator
-        self.denominator = denominator
-        self.r_order = r_order
-        self.z_order = z_order
-        self.sign = 1
+    #def __init__(self, numerator, denominator, r_order, z_order):
+    def __init__(self, coeff, r_order, z_order):
+        if(coeff < 0.0): 
+            self.sign = -1
+        else:
+            self.sign = 1
+
+        i = compare_fraction(coeff)
+        if(i >= 0):
+            myPair = common_fractions[i]
+            self.numerator = compute_prime_factors(myPair[0])
+            self.denominator = compute_prime_factors(myPair[1])
+            self.r_order = r_order
+            self.z_order = z_order
+            print "Found the fraction! value = %8.6f (%i/%i)" % (self.coeff_float(),myPair[0],myPair[1])
+        else:
+            print "Did not find the fraction! value = %8.6f" % coeff
+            self.numerator = []
+            self.denominator = []
+            self.r_order = 0
+            self.z_order = 0
 
     def __del__(self):
         #self.coeff = 0.0
@@ -625,23 +657,34 @@ class Subterm:
         return denomval
 
     def reduce_fraction(self):
+        print "Reducing fraction for this subterm:"
+        self.print_info()
         self.sort_num_denom()
+        print "Before reduction: numerator, denominator = "
+        print self.numerator,self.denominator
         ival = 0
         while(ival < self.nnumer()):
             jval = 0
-            while(jval < self.ndenom()):
+            while(jval < self.ndenom() and ival < self.nnumer()):
+                print "ival = %i, nnum = %i, jval = %i, ndenom = %i" % (ival,self.nnumer(),jval,self.ndenom())
                 if(self.numerator[ival] == self.denominator[jval]):
                 ### common multiple, eliminate this term
                     del self.numerator[ival]
                     del self.denominator[jval]
                 else:
                     jval += 1
+            ival += 1
 
-    def sort_num_denom():
-        tmpList = self.numerator.sort()
-        self.numerator = tmpList
-        tmpList = self.denominator.sort()
-        self.denominator = tmpList
+        print "After reduction: numerator, denominator = "
+        print self.numerator,self.denominator
+
+    def sort_num_denom(self):
+        #tmpList1 = self.numerator.sort()
+        #self.numerator = tmpList
+        #tmpList2 = self.denominator.sort()
+        #self.denominator = tmpList
+        self.numerator.sort()
+        self.denominator.sort()
 
     def add_r_order(self,number):
         self.r_order += number
@@ -658,12 +701,19 @@ class Subterm:
             #oldcoeff = float(self.coeff)
             #self.coeff = self.coeff + thatSubTerm.coeff 
 
-            tmpNum = ( self.get_numerator() * thatSubTerm.get_denominator() +  
+            print "Adding two terms: term1 = %i/%i, term2 = %i/%i" % (self.get_numerator(),
+               self.get_denominator(),thatSubTerm.get_numerator(),thatSubTerm.get_denominator())
+            tmpNum = ( self.get_numerator()   * thatSubTerm.get_denominator() +  
                        self.get_denominator() * thatSubTerm.get_numerator() )
-            tmpDenom = self.get_denominator() * thatSubTerm.get_denominator()
+            #tmpDenom = self.get_denominator() * thatSubTerm.get_denominator()
+            self.denominator.extend(thatSubTerm.denominator)
 
+            #print "tmpnum = %i, tmpDenom = %i" % (tmpNum, tmpDenom)
+            print "Computing prime factors"
             self.numerator = compute_prime_factors(tmpNum)
-            self.denominator = compute_prime_factors(tmpDenom)
+            #self.denominator = compute_prime_factors(tmpDenom)
+            print "numerator, denominator prime factors = "
+            print self.numerator,self.denominator
             self.reduce_fraction()
 
             #have_frac = compare_fraction(self.coeff)
@@ -759,56 +809,82 @@ def term_mult(myTerm, thatTerm):
 # multiply two subterms
 def subterm_mult(mySubTerm,thatSubTerm):
     #coeff = mySubTerm.coeff * thatSubTerm.coeff
-    mySubTerm.numerator.extend(thatSubTerm.numerator)
-    mySubTerm.denominator.extend(thatSubTerm.denominator)
-    mySubTerm.reduce_fraction()
-    r_order = mySubTerm.r_order + thatSubTerm.r_order
-    z_order = mySubTerm.z_order + thatSubTerm.z_order
-    #have_frac = compare_fraction(coeff)
-    #if((r_order + z_order) <= MAX_ORDER): # we need to find a fraction
-    #    if(have_frac == -1): # we didn't find the fraction! 
-    #        if(abs(coeff) >= THRESHOLD):
-    #            print "Didn't find the fraction in our list! The float %8.6e is the product of " % abs(coeff)
-    #            print "%16.14e and %16.14e" % (abs(mySubTerm.coeff),abs(thatSubTerm.coeff))
-    #            i = compare_fraction(mySubTerm.coeff)
-    #            j = compare_fraction(thatSubTerm.coeff)
-    #            if(i >= 0):
-    #                myPair1 = common_fractions[i]
-    #            else:
-    #                print "did not find fraction for coeff 1"
-    #            if(j >= 0):
-    #                myPair2 = common_fractions[j]
-    #            else:
-    #                print "did not find fraction for coeff 2"
-    #            if(i >= 0 and j >= 0): 
-    #                print "%i/%i x %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-    #                             myPair2[1],myPair1[0]*myPair2[0],myPair1[1]*myPair2[1])
+    ### don't multiply if result will be below THRESHOLD
+    newSubTerm = copy_subterm(mySubTerm)
+    if(abs(newSubTerm.coeff_float()*thatSubTerm.coeff_float()) < THRESHOLD):
+        ## cut the subterm off, effectively
+        print "NOT Multiplying two terms: term1 = %i/%i, term2 = %i/%i" % (mySubTerm.get_numerator(),
+           mySubTerm.get_denominator(),thatSubTerm.get_numerator(),thatSubTerm.get_denominator())
+        newSubTerm.numerator = []
+        newSubTerm.denominator = [2947207]
+    else:
+        print "Multiplying two terms: term1 = %i/%i, term2 = %i/%i" % (mySubTerm.get_numerator(),
+           mySubTerm.get_denominator(),thatSubTerm.get_numerator(),thatSubTerm.get_denominator())
+        newSubTerm.numerator.extend(thatSubTerm.numerator)
+        newSubTerm.denominator.extend(thatSubTerm.denominator)
+        if(newSubTerm.coeff_float() > THRESHOLD):
+            newSubTerm.reduce_fraction()
+        else: # this is a small term that we don't care about
+            newSubTerm.numerator = []
+            newSubTerm.denominator = [2947207]
 
-    #            ### search for sum of two common fractions
-    #            [frac1,frac2] = compare_fraction_sum(coeff)
-    #            if(frac1 >= 0): # we found a match
-    #                print "The float is the sum of two fractions:"
-    #                
-    #                myPair1 = common_fractions[frac1]
-    #                myPair2 = common_fractions[frac2]
-    #                print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-    #                             myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
+        #if((r_order + z_order) <= MAX_ORDER): # we need to find a fraction
+        #    if(have_frac == -1): # we didn't find the fraction! 
+        #        if(abs(coeff) >= THRESHOLD):
+        #            print "Didn't find the fraction in our list! The float %8.6e is the product of " % abs(coeff)
+        #            print "%16.14e and %16.14e" % (abs(mySubTerm.coeff),abs(thatSubTerm.coeff))
+        #            i = compare_fraction(mySubTerm.coeff)
+        #            j = compare_fraction(thatSubTerm.coeff)
+        #            if(i >= 0):
+        #                myPair1 = common_fractions[i]
+        #            else:
+        #                print "did not find fraction for coeff 1"
+        #            if(j >= 0):
+        #                myPair2 = common_fractions[j]
+        #            else:
+        #                print "did not find fraction for coeff 2"
+        #            if(i >= 0 and j >= 0): 
+        #                print "%i/%i x %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+        #                             myPair2[1],myPair1[0]*myPair2[0],myPair1[1]*myPair2[1])
+
+        #            ### search for sum of two common fractions
+        #            [frac1,frac2] = compare_fraction_sum(coeff)
+        #            if(frac1 >= 0): # we found a match
+        #                print "The float is the sum of two fractions:"
+        #                
+        #                myPair1 = common_fractions[frac1]
+        #                myPair2 = common_fractions[frac2]
+        #                print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+        #                             myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
  
-                
+                    
 
-    #return Subterm(coeff,r_order,z_order)
-    return Subterm(numerator,denominator,r_order,z_order)
+        #return Subterm(coeff,r_order,z_order)
+        #newSubTerm.numerator = mySubTerm.numerator
+        #newSubTerm.denominator = mySubTerm.denominator
+
+    newSubTerm.r_order = mySubTerm.r_order + thatSubTerm.r_order
+    newSubTerm.z_order = mySubTerm.z_order + thatSubTerm.z_order
+
+    #have_frac = compare_fraction(coeff)
+    return newSubTerm
 
 def copy_subterm_list(thatSubTermList):
     newSubTermList = []
     for mySubTerm in thatSubTermList:
         #newSubTermList.append(Subterm(mySubTerm.coeff,mySubTerm.r_order,mySubTerm.z_order) )
-        newSubTermList.append(Subterm(mySubTerm.numerator,mySubTerm.denominator,mySubTerm.r_order,mySubTerm.z_order) )
+        #newSubTermList.append(Subterm(mySubTerm.numerator,mySubTerm.denominator,mySubTerm.r_order,mySubTerm.z_order) )
+        newSubTermList.append(copy_subterm(mySubTerm))
     return newSubTermList
 
 def copy_subterm(thatSubTerm):
+    newSubTermCopy = Subterm(1.0,thatSubTerm.r_order,thatSubTerm.z_order)
+    newSubTermCopy.numerator = thatSubTerm.numerator
+    newSubTermCopy.denominator = thatSubTerm.denominator
+    newSubTermCopy.sign = thatSubTerm.sign
+    return newSubTermCopy
     #return Subterm(thatSubTerm.coeff,thatSubTerm.r_order,thatSubTerm.z_order)
-    return Subterm(thatSubTerm.numerator,thatSubTerm.denominator,thatSubTerm.r_order,thatSubTerm.z_order)
+    #return Subterm(thatSubTerm.numerator,thatSubTerm.denominator,thatSubTerm.r_order,thatSubTerm.z_order)
 
 def compare_fraction(thatFloat):
     for i in range(0,nfrac):
@@ -840,6 +916,8 @@ def compute_prime_factors(myInt):
         else:
             i += 1
             #if(is_prime(i)):
+
+    return factor_list
 
 
 #def is_prime(n):
@@ -948,7 +1026,8 @@ equation_labels   = ['',
                      'transport3D']
 
 ##### commonly encountered fractions for LaTeX output
-common_fractions = [(1,  3),
+common_fractions = [(1,  1),
+                    (1,  3),
                     (1,  5),
                     (1,  7),
                     (1,  9),
@@ -956,142 +1035,193 @@ common_fractions = [(1,  3),
                     (1, 15),
                     (1, 21),
                     (1, 25),
-                    (1, 27),
-                    (1, 33),
                     (1, 35),
-                    (1, 42),
-                    (1, 49),
                     (1, 63),
-                    (1, 75),
                     (1, 99),
                     (1,105),
-                    (1,125),
-                    (1,147),
-                    (1,175),
-                    (1,189),
-                    (1,231),
-                    (1,245),
-                    (1,343),
-                    (1,375),
-                    (1,735),
-                    (1,1715),
-                    (2,  3),
-                    (2,  5),
-                    (2, 25),
-                    (2, 35),
-                    (2, 45),
-                    (2, 49),
-                    (2, 75),
-                    (2,105),
-                    (2,125),
-                    (2,135),
-                    (2,147),
-                    (2,175),
-                    (2,245),
+                    (1,126),
+                    (3,  3),
                     (3,  5),
                     (3,  7),
-                    (3, 25),
+                    (3,  9),
+                    (3, 11),
+                    (3, 15),
+                    (3, 21),
                     (3, 35),
-                    (3, 49),
-                    (3,125),
-                    (3,175),
-                    (3,245),
-                    (3,343),
-                    (3,1715),
-                    (4, 35),
-                    (4, 45),
-                    (4,105),
-                    (4,175),
-                    (4,245),
-                    (4,525),
+                    (3, 63),
+                    (3, 99),
+                    (3,105),
+                    (3,126),
                     (5,  3),
+                    (5,  5),
                     (5,  7),
                     (5,  9),
                     (5, 11),
+                    (5, 15),
                     (5, 21),
-                    (5, 27),
                     (5, 33),
-                    (5, 49),
+                    (5, 35),
                     (5, 63),
                     (5, 99),
+                    (5,105),
                     (5,126),
-                    (5,147),
-                    (5,189),
-                    (5,231),
-                    (5,343),
-                    (5,441),
-                    (5,1715),
-                    (6, 35),
-                    (6, 45),
-                    (6, 77),
-                    (6,125),
-                    (6,175),
-                    (6,245),
-                    (6,539),
-                    (6,875),
-                    (6,1125),
-                    (8, 45),
-                    (8,105),
-                    (8,175),
-                    (8,245),
-                    (8,315),
-                    (8,525),
-                    (8,875),
-                    (8,1575),
-                    (9, 35),
-                    (9, 49),
-                    (9,125),
-                    (9,175),
-                    (9,245),
-                   (10, 49),
-                   (10,189),
-                   (11,175),
-                   (12,175),
-                   (12,875),
-                   (12,245),
-                   (15,147),
-                   (16,175),
-                   (18,245),
-                   (18,875),
-                   (19,105),
-                   (22,2625),
-                   (24, 35),
-                   (24,245),
-                   (24,875),
-                   (25,441),
-                   (29,875),
-                   (30,539),
-                   (32,2625),
-                   (37,700),
-                   (39,225),
-                   (44,945),
-                   (46,675),
-                   (46,875),
-                   (62,147),
-                   (97,147),
-                   (97,735),
-                   (18,1225),
-                   (18,4375),
-                   (27,1225),
-                   (96,4900),
-                   (52,1575),
-                   (87,7875),
-                  (161,735),
-                  (101,1575),
-                  (101,3675),
-                  (106,4725),
-                  (112,1715),
-                  (162,7875),
-                  (252,8557),
-                  (252,8575),
-                  (372,1225),
-                  (348,6125),
-                  (592,3885),
-                  (696,6125),
-                  (548,18375),
-                  (938,42875),
-                  (3304,42875),
-                  (980,7203)]
+                    (7,  3),
+                    (7,  5),
+                    (7,  7),
+                    (7,  9),
+                    (7, 11),
+                    (7, 15),
+                    (7, 21),
+                    (7, 35),
+                    (7, 63),
+                    (7, 99),
+                    (7,105),
+                    (7,126)]
+
+#common_fractions = [(1,  3),
+#                    (1,  5),
+#                    (1,  7),
+#                    (1,  9),
+#                    (1, 11),
+#                    (1, 15),
+#                    (1, 21),
+#                    (1, 25),
+#                    (1, 27),
+#                    (1, 33),
+#                    (1, 35),
+#                    (1, 42),
+#                    (1, 49),
+#                    (1, 63),
+#                    (1, 75),
+#                    (1, 99),
+#                    (1,105),
+#                    (1,125),
+#                    (1,147),
+#                    (1,175),
+#                    (1,189),
+#                    (1,231),
+#                    (1,245),
+#                    (1,343),
+#                    (1,375),
+#                    (1,735),
+#                    (1,1715),
+#                    (2,  3),
+#                    (2,  5),
+#                    (2, 25),
+#                    (2, 35),
+#                    (2, 45),
+#                    (2, 49),
+#                    (2, 75),
+#                    (2,105),
+#                    (2,125),
+#                    (2,135),
+#                    (2,147),
+#                    (2,175),
+#                    (2,245),
+#                    (3,  5),
+#                    (3,  7),
+#                    (3, 25),
+#                    (3, 35),
+#                    (3, 49),
+#                    (3,125),
+#                    (3,175),
+#                    (3,245),
+#                    (3,343),
+#                    (3,1715),
+#                    (4, 35),
+#                    (4, 45),
+#                    (4,105),
+#                    (4,175),
+#                    (4,245),
+#                    (4,525),
+#                    (5,  3),
+#                    (5,  7),
+#                    (5,  9),
+#                    (5, 11),
+#                    (5, 21),
+#                    (5, 27),
+#                    (5, 33),
+#                    (5, 49),
+#                    (5, 63),
+#                    (5, 99),
+#                    (5,126),
+#                    (5,147),
+#                    (5,189),
+#                    (5,231),
+#                    (5,343),
+#                    (5,441),
+#                    (5,1715),
+#                    (6, 35),
+#                    (6, 45),
+#                    (6, 77),
+#                    (6,125),
+#                    (6,175),
+#                    (6,245),
+#                    (6,539),
+#                    (6,875),
+#                    (6,1125),
+#                    (8, 45),
+#                    (8,105),
+#                    (8,175),
+#                    (8,245),
+#                    (8,315),
+#                    (8,525),
+#                    (8,875),
+#                    (8,1575),
+#                    (9, 35),
+#                    (9, 49),
+#                    (9,125),
+#                    (9,175),
+#                    (9,245),
+#                   (10, 49),
+#                   (10,189),
+#                   (11,175),
+#                   (12,175),
+#                   (12,875),
+#                   (12,245),
+#                   (15,147),
+#                   (16,175),
+#                   (18,245),
+#                   (18,875),
+#                   (19,105),
+#                   (22,2625),
+#                   (24, 35),
+#                   (24,245),
+#                   (24,875),
+#                   (25,441),
+#                   (29,875),
+#                   (30,539),
+#                   (32,2625),
+#                   (37,700),
+#                   (39,225),
+#                   (44,945),
+#                   (46,675),
+#                   (46,875),
+#                   (62,147),
+#                   (97,147),
+#                   (97,735),
+#                   (18,1225),
+#                   (18,4375),
+#                   (27,1225),
+#                   (96,4900),
+#                   (52,1575),
+#                   (87,7875),
+#                  (161,735),
+#                  (101,1575),
+#                  (101,3675),
+#                  (106,4725),
+#                  (112,1715),
+#                  (162,7875),
+#                  (252,8557),
+#                  (252,8575),
+#                  (372,1225),
+#                  (348,6125),
+#                  (592,3885),
+#                  (696,6125),
+#                  (548,18375),
+#                  (938,42875),
+#                  (3304,42875),
+#                  (980,7203)]
 
 nfrac = len(common_fractions)
 
@@ -1284,7 +1414,7 @@ if __name__ == '__main__':
         ### negate terms for axTLterm
         for mySubTerm in axTLterm.subterm_list:
             #mySubTerm.coeff = -1.0*mySubTerm.coeff
-            mySubTerm.sign = -1.0*mySubTerm.sign
+            mySubTerm.sign = -1*mySubTerm.sign
 
         print "tmpSubTermList 1:"
         print newTermList[0].print_term()
@@ -1315,10 +1445,10 @@ if __name__ == '__main__':
         tmpTermList      = [] 
         ### SOURCE_2D term
         tmpSubTermList   = [] 
-        tmpSubTermList.append(Subterm([],[] ,0,0))
-        tmpSubTermList.append(Subterm([]/[3],1,0))
-        tmpSubTermList.append(Subterm([]/[5],2,0))
-        tmpSubTermList.append(Subterm([]/[7],3,0))
+        tmpSubTermList.append(Subterm(1.0,0,0))
+        tmpSubTermList.append(Subterm(1.0/3.0,1,0))
+        tmpSubTermList.append(Subterm(1.0/5.0,2,0))
+        tmpSubTermList.append(Subterm(1.0/7.0,3,0))
         tmpTermList.append(Term(tmpSubTermList,SOURCE_2D))
 
         ### LIN_AX_AZI term
@@ -1334,8 +1464,15 @@ if __name__ == '__main__':
         tmpSubTermList.append(Subterm(-5.0/3.0 ,0,0))
         tmpSubTermList.append(Subterm(-1.0/3.0 ,1,0))
         tmpSubTermList.append(Subterm(-1.0/7.0 ,2,0))
-        tmpSubTermList.append(Subterm(-5.0/63.0,3,0))
+        #tmpSubTermList.append(Subterm(-5.0/63.0,3,0))
+        tmpSubTermList.append(Subterm(-5.0/63.0,2,0))
         tmpTermList.append(Term(tmpSubTermList,QUAD_AX_POL))
+
+        #print "Test subterm_add:"
+        #tmpSubTermList[3].subterm_add(tmpSubTermList[2])
+
+        #print "Test subterm_mult:"
+        #temporary = subterm_mult(tmpSubTermList[2],tmpSubTermList[3])
 
         ### QUAD_AX_AZI term
         tmpSubTermList   = [] 
@@ -1702,7 +1839,12 @@ if __name__ == '__main__':
 
         linaxaziTL_comp.substitute_component(linradaziTL_comp)
         linaxaziTL_comp.substitute_component(quadradcrossTL_comp)
+        ### 
+        print "Before solve"
+        linaxaziTL_comp.print_component()
         linaxaziTL_comp.solve()
+        print "after solve"
+        linaxaziTL_comp.print_component()
         linaxaziTL_comp.write_latex_equation()
 
         ### 2) solve for QUAD_AX_XXX
