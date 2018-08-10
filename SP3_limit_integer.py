@@ -176,21 +176,11 @@ class Component:
             mySubTerm.sign = -1*mySubTerm.sign
 
         ### calculate x^2, x^3
-        print "ExtraTerm: "
-        extraTerm.print_info()
         extraTerm_squared = term_mult(extraTerm,extraTerm)
-        print "ExtraTerm after square: "
-        extraTerm.print_info()
         extraTerm_cubed = term_mult(extraTerm,extraTerm_squared)
-        print "ExtraTerm after cube: "
-        extraTerm.print_info()
          
         extraTerm.term_add(extraTerm_squared)
-        print "ExtraTerm add square: "
-        extraTerm.print_info()
         extraTerm.term_add(extraTerm_cubed)
-        print "ExtraTerm add cube: "
-        extraTerm.print_info()
 
         extraTerm.subterm_list.insert(0,Subterm(1.0,0,0))
         #extraTerm.subterm_list.insert(0,Subterm([],[],0,0))
@@ -407,7 +397,7 @@ class Term:
             if(mySubTerm.sign == 1):
                 print "+ ",
             else:
-                print "",
+                print "- ",
             #print "%7.5f" % (mySubTerm.coeff_float()),
             print "%i/%i" % (mySubTerm.get_numerator(),mySubTerm.get_denominator()),
             if(mySubTerm.r_order > 0):
@@ -428,8 +418,6 @@ class Term:
         ### determine if whole term is negative
         allneg = True
         for mySubTerm in self.subterm_list:
-            #if(mySubTerm.coeff_float() > 0.0):
-            print "mySubTerm.sign = %i" % mySubTerm.sign
             if(mySubTerm.sign == 1):
                 allneg = False
 
@@ -442,9 +430,9 @@ class Term:
         firstTerm = True
         for mySubTerm in self.subterm_list:
 
-            if(mySubTerm.sign == 1):
+            if(mySubTerm.coeff_float() == 1.0):
                 mystr = ""
-            elif(mySubTerm.sign == -1):
+            elif(mySubTerm.coeff_float() == -1.0):
                 if(allneg == False):
                     mystr = "- "
                 else:
@@ -590,7 +578,7 @@ class Subterm:
             self.denominator = compute_prime_factors(myPair[1])
             self.r_order = r_order
             self.z_order = z_order
-            print "Found the fraction! value = %8.6f (%i/%i)" % (self.coeff_float(),myPair[0],myPair[1])
+            #print "Found the fraction! value = %8.6f (%i/%i)" % (self.coeff_float(),myPair[0],myPair[1])
         else:
             print "Did not find the fraction! value = %8.6f" % coeff
             self.numerator = []
@@ -657,16 +645,12 @@ class Subterm:
         return denomval
 
     def reduce_fraction(self):
-        print "Reducing fraction for this subterm:"
-        self.print_info()
         self.sort_num_denom()
-        print "Before reduction: numerator, denominator = "
-        print self.numerator,self.denominator
         ival = 0
         while(ival < self.nnumer()):
             jval = 0
             while(jval < self.ndenom() and ival < self.nnumer()):
-                print "ival = %i, nnum = %i, jval = %i, ndenom = %i" % (ival,self.nnumer(),jval,self.ndenom())
+                #print "ival = %i, nnum = %i, jval = %i, ndenom = %i" % (ival,self.nnumer(),jval,self.ndenom())
                 if(self.numerator[ival] == self.denominator[jval]):
                 ### common multiple, eliminate this term
                     del self.numerator[ival]
@@ -675,14 +659,7 @@ class Subterm:
                     jval += 1
             ival += 1
 
-        print "After reduction: numerator, denominator = "
-        print self.numerator,self.denominator
-
     def sort_num_denom(self):
-        #tmpList1 = self.numerator.sort()
-        #self.numerator = tmpList
-        #tmpList2 = self.denominator.sort()
-        #self.denominator = tmpList
         self.numerator.sort()
         self.denominator.sort()
 
@@ -698,53 +675,18 @@ class Subterm:
     # add two subterms
     def subterm_add(self,thatSubTerm):
         if(self.match_order(thatSubTerm)):
-            #oldcoeff = float(self.coeff)
-            #self.coeff = self.coeff + thatSubTerm.coeff 
 
-            print "Adding two terms: term1 = %i/%i, term2 = %i/%i" % (self.get_numerator(),
-               self.get_denominator(),thatSubTerm.get_numerator(),thatSubTerm.get_denominator())
+            #print "Adding two terms: term1 = %i/%i, term2 = %i/%i" % (self.get_numerator(),
+            #   self.get_denominator(),thatSubTerm.get_numerator(),thatSubTerm.get_denominator())
             tmpNum = ( self.get_numerator()   * thatSubTerm.get_denominator() +  
                        self.get_denominator() * thatSubTerm.get_numerator() )
             #tmpDenom = self.get_denominator() * thatSubTerm.get_denominator()
             self.denominator.extend(thatSubTerm.denominator)
 
             #print "tmpnum = %i, tmpDenom = %i" % (tmpNum, tmpDenom)
-            print "Computing prime factors"
             self.numerator = compute_prime_factors(tmpNum)
             #self.denominator = compute_prime_factors(tmpDenom)
-            print "numerator, denominator prime factors = "
-            print self.numerator,self.denominator
             self.reduce_fraction()
-
-            #have_frac = compare_fraction(self.coeff)
-            #if((self.r_order + self.z_order) <= MAX_ORDER): # we need to find a fraction
-            #    if(have_frac == -1): # we didn't find the fraction! 
-            #        if(abs(self.coeff) >= THRESHOLD):
-            #            print "Didn't find the fraction in our list! The float %8.6e is the sum of " % abs(self.coeff)
-            #            print "%16.14e and %16.14e" % (abs(oldcoeff),abs(thatSubTerm.coeff))
-            #            i = compare_fraction(oldcoeff)
-            #            j = compare_fraction(thatSubTerm.coeff)
-            #            if(i >= 0):
-            #                myPair1 = common_fractions[i]
-            #            else:
-            #                print "did not find fraction for coeff 1"
-            #            if(j >= 0):
-            #                myPair2 = common_fractions[j]
-            #            else:
-            #                print "did not find fraction for coeff 2"
-            #            if(i >= 0 and j >= 0): 
-            #                print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-            #                             myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
-
-            #            ### search for sum of two common fractions
-            #            #[frac1,frac2] = compare_fraction_sum(coeff)
-            #            #if(frac1 >= 0): # we found a match
-            #            #    print "The float is the sum of two fractions:"
-            #            #    
-            #            #    myPair1 = common_fractions[frac1]
-            #            #    myPair2 = common_fractions[frac2]
-            #            #    print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-            #            #                 myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
 
         else:
             print "These terms don't add! my (r,z) = (%i,%i), their (r,z) = (%i,%i) " % (
@@ -792,6 +734,10 @@ def term_mult(myTerm, thatTerm):
     ### when multiplying, the ID of the self is retained. Only the 
     ### subterms of otherTerm are retained.
 
+    #print "Multiplying myTerm: "
+    #myTerm.print_term()
+    #print "by thatTerm: "
+    #thatTerm.print_term()
     newSubTermList = []
     for mySubTerm in myTerm.subterm_list:
         for thatSubTerm in thatTerm.subterm_list:
@@ -808,65 +754,19 @@ def term_mult(myTerm, thatTerm):
 
 # multiply two subterms
 def subterm_mult(mySubTerm,thatSubTerm):
-    #coeff = mySubTerm.coeff * thatSubTerm.coeff
-    ### don't multiply if result will be below THRESHOLD
     newSubTerm = copy_subterm(mySubTerm)
-    if(abs(newSubTerm.coeff_float()*thatSubTerm.coeff_float()) < THRESHOLD):
-        ## cut the subterm off, effectively
-        print "NOT Multiplying two terms: term1 = %i/%i, term2 = %i/%i" % (mySubTerm.get_numerator(),
-           mySubTerm.get_denominator(),thatSubTerm.get_numerator(),thatSubTerm.get_denominator())
-        newSubTerm.numerator = []
-        newSubTerm.denominator = [2947207]
-    else:
-        print "Multiplying two terms: term1 = %i/%i, term2 = %i/%i" % (mySubTerm.get_numerator(),
-           mySubTerm.get_denominator(),thatSubTerm.get_numerator(),thatSubTerm.get_denominator())
-        newSubTerm.numerator.extend(thatSubTerm.numerator)
-        newSubTerm.denominator.extend(thatSubTerm.denominator)
-        if(newSubTerm.coeff_float() > THRESHOLD):
-            newSubTerm.reduce_fraction()
-        else: # this is a small term that we don't care about
-            newSubTerm.numerator = []
-            newSubTerm.denominator = [2947207]
+    thatCopy = copy_subterm(thatSubTerm)
 
-        #if((r_order + z_order) <= MAX_ORDER): # we need to find a fraction
-        #    if(have_frac == -1): # we didn't find the fraction! 
-        #        if(abs(coeff) >= THRESHOLD):
-        #            print "Didn't find the fraction in our list! The float %8.6e is the product of " % abs(coeff)
-        #            print "%16.14e and %16.14e" % (abs(mySubTerm.coeff),abs(thatSubTerm.coeff))
-        #            i = compare_fraction(mySubTerm.coeff)
-        #            j = compare_fraction(thatSubTerm.coeff)
-        #            if(i >= 0):
-        #                myPair1 = common_fractions[i]
-        #            else:
-        #                print "did not find fraction for coeff 1"
-        #            if(j >= 0):
-        #                myPair2 = common_fractions[j]
-        #            else:
-        #                print "did not find fraction for coeff 2"
-        #            if(i >= 0 and j >= 0): 
-        #                print "%i/%i x %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-        #                             myPair2[1],myPair1[0]*myPair2[0],myPair1[1]*myPair2[1])
-
-        #            ### search for sum of two common fractions
-        #            [frac1,frac2] = compare_fraction_sum(coeff)
-        #            if(frac1 >= 0): # we found a match
-        #                print "The float is the sum of two fractions:"
-        #                
-        #                myPair1 = common_fractions[frac1]
-        #                myPair2 = common_fractions[frac2]
-        #                print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-        #                             myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
- 
-                    
-
-        #return Subterm(coeff,r_order,z_order)
-        #newSubTerm.numerator = mySubTerm.numerator
-        #newSubTerm.denominator = mySubTerm.denominator
+    newSubTerm.numerator.extend(thatCopy.numerator)
+    newSubTerm.denominator.extend(thatCopy.denominator)
+    newSubTerm.reduce_fraction()
 
     newSubTerm.r_order = mySubTerm.r_order + thatSubTerm.r_order
     newSubTerm.z_order = mySubTerm.z_order + thatSubTerm.z_order
 
-    #have_frac = compare_fraction(coeff)
+    #print "Subterm mult result:"
+    #print newSubTerm.numerator,newSubTerm.denominator
+
     return newSubTerm
 
 def copy_subterm_list(thatSubTermList):
@@ -879,8 +779,8 @@ def copy_subterm_list(thatSubTermList):
 
 def copy_subterm(thatSubTerm):
     newSubTermCopy = Subterm(1.0,thatSubTerm.r_order,thatSubTerm.z_order)
-    newSubTermCopy.numerator = thatSubTerm.numerator
-    newSubTermCopy.denominator = thatSubTerm.denominator
+    newSubTermCopy.numerator = list(thatSubTerm.numerator)
+    newSubTermCopy.denominator = list(thatSubTerm.denominator)
     newSubTermCopy.sign = thatSubTerm.sign
     return newSubTermCopy
     #return Subterm(thatSubTerm.coeff,thatSubTerm.r_order,thatSubTerm.z_order)
@@ -1792,13 +1692,19 @@ if __name__ == '__main__':
         tmpSubTermList.append(Subterm(-1.0     ,0,0.5))
         tmpSubTermList.append(Subterm(-3.0/7.0 ,0,1.5))
         tmpSubTermList.append(Subterm(-5.0/21.0,0,2.5))
-        #tmpSubTermList.append(Subterm(-5.0/33.0,0,0.5))
         tmpTermList.append(Term(tmpSubTermList,QUAD_RAD_XXX))
 
         tmpComponentList.append(Component(tmpTermList,LIN_AX_AZI))
         tmpComponentList[-1].write_latex_equation()
 
         myComponentList = ComponentList(tmpComponentList)
+
+        ########## print all of the components #########
+        #print "PRINTING ALL OF THE COMPONENTS NOW!"
+        #for myComponent in myComponentList.component_list:
+        #    print " "
+        #    myComponent.print_component()
+        #    print " "
 
         #############################################################
         ######### Substitution and solution is performed  ###########
@@ -1837,14 +1743,18 @@ if __name__ == '__main__':
         linradaziTL_comp    = myComponentList.find_component( LIN_RAD_AZI)
         quadradcrossTL_comp = myComponentList.find_component(QUAD_RAD_XXX)
 
+        #print "LIN_AX_AZI:"
+        #linaxaziTL_comp.print_component()
+        #print "LIN_RAD_AZI:"
+        #linradaziTL_comp.print_component()
+        #print "QUAD_RAD_CROSS:"
+        #quadradcrossTL_comp.print_component()
+        #print "This part is over"
+
         linaxaziTL_comp.substitute_component(linradaziTL_comp)
         linaxaziTL_comp.substitute_component(quadradcrossTL_comp)
         ### 
-        print "Before solve"
-        linaxaziTL_comp.print_component()
         linaxaziTL_comp.solve()
-        print "after solve"
-        linaxaziTL_comp.print_component()
         linaxaziTL_comp.write_latex_equation()
 
         ### 2) solve for QUAD_AX_XXX
