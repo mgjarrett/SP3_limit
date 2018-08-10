@@ -926,6 +926,7 @@ common_fractions = [(1,  3),
                     (8, 45),
                     (8,105),
                     (8,175),
+                    (8,225),
                     (8,245),
                     (8,315),
                     (8,525),
@@ -1190,11 +1191,13 @@ if __name__ == '__main__':
         newisoaxtlComp = myComponentList.find_component(ISO_AX_TL)
         print "Iso AX TL component:"
         newisoaxtlComp.print_component()
+        newisoaxtlComp.write_latex_equation()
         newphiComp.substitute_component(newisoaxtlComp)
 
         ### Expression for PHI and F
         newphiComp.print_component()
         newphiComp.solve()
+        newphiComp.write_latex_equation()
 
         newphiComp.solve_F()
 
@@ -1686,7 +1689,97 @@ if __name__ == '__main__':
         linaxpolTL_comp.solve()
         linaxpolTL_comp.write_latex_equation()
         
+        ### 14) Substitute LIN_AX_AZI, QUAD_AX_POL, and QUAD_AX_AZI into LIN_RAD_AZI
+        linradaziTL_comp.substitute_component(linaxaziTL_comp)
+        linradaziTL_comp.substitute_component(quadaxpolTL_comp)
+        linradaziTL_comp.substitute_component(quadaxaziTL_comp)
+        linradaziTL_comp.write_latex_equation()
 
+        ### 15) Substitute LIN_AX_AZI, QUAD_AX_POL, and QUAD_AX_AZI into QUAD_RAD_AZI
+        quadradaziTL_comp.substitute_component(linaxaziTL_comp)
+        quadradaziTL_comp.substitute_component(quadaxpolTL_comp)
+        quadradaziTL_comp.substitute_component(quadaxaziTL_comp)
+        quadradaziTL_comp.write_latex_equation()
+
+        ### 16) Substitute LIN_AX_AZI, QUAD_AX_POL, and QUAD_AX_AZI into QUAD_RAD_POL
+        quadradpolTL_comp.substitute_component(linaxaziTL_comp)
+        quadradpolTL_comp.substitute_component(quadaxpolTL_comp)
+        quadradpolTL_comp.substitute_component(quadaxaziTL_comp)
+        quadradpolTL_comp.write_latex_equation()
+
+        ### 17) Substitute LIN_AX_POL, QUAD_AX_XXX into LIN_RAD_POL
+        linradpolTL_comp.substitute_component(linaxpolTL_comp)
+        linradpolTL_comp.substitute_component(quadaxcrossTL_comp)
+        linradpolTL_comp.write_latex_equation()
+
+        ### 18) Substitute LIN_AX_POL, QUAD_AX_XXX into QUAD_RAD_XXX
+        quadradcrossTL_comp.substitute_component(linaxpolTL_comp)
+        quadradcrossTL_comp.substitute_component(quadaxcrossTL_comp)
+        quadradcrossTL_comp.write_latex_equation()
+
+        ### 19) Substitute LIN_AX_AZI, QUAD_AX_POL, QUAD_AX_AZI into SCALAR_FLUX
+        scalarFlux_comp = myComponentList.find_component(SCALAR_FLUX)
+        scalarFlux_comp.substitute_component( linaxaziTL_comp)
+        scalarFlux_comp.substitute_component(quadaxpolTL_comp)
+        scalarFlux_comp.substitute_component(quadaxaziTL_comp)
+        scalarFlux_comp.write_latex_equation()
+
+        ### 20) SOURCE_1D term (F - \RTL) = (Sigma_t \phi + dJ/dz)
+        ########### ISO_RAD_TL component (dJ/dx + dJ/dy) ##########
+        tmpTermList      = [] 
+        tmpSubTermList      = [] 
+        tmpSubTermList.append(Subterm(1.0,0,0))
+        tmpTermList.append(Term(tmpSubTermList,SCALAR_FLUX))
+        tmpTermList.append(Term(tmpSubTermList,ISO_AX_TL))
+        myComponentList.add_component(Component(tmpTermList,SOURCE_1D))
+
+        ### 21) Substitute ISO_RAD_TL into SCALAR_FLUX
+        #isoradTL_comp = myComponentList.find_component(ISO_RAD_TL)
+        #"print isoradTL_comp:"
+        #isoradTL_comp.print_component()
+        #scalarFlux_comp.substitute_component(isoradTL_comp)
+        #scalarFlux_comp.solve()
+        #scalarFlux_comp.write_latex_equation()
+        source1D_comp = myComponentList.find_component(SOURCE_1D)
+        "print isoradTL_comp:"
+        source1D_comp.print_component()
+        scalarFlux_comp.substitute_component(source1D_comp)
+        scalarFlux_comp.solve()
+        scalarFlux_comp.write_latex_equation()
+
+        ### 22) SOURCE_2D = SOURCE_3D - ISO_AX_TL
+        tmpTermList      = [] 
+        tmpSubTermList      = [] 
+        tmpSubTermList.append(Subterm(1.0,0,0))
+        tmpTermList.append(Term(tmpSubTermList,SOURCE_3D))
+        tmpSubTermList      = [] 
+        tmpSubTermList.append(Subterm(-1.0,0,0))
+        tmpTermList.append(Term(tmpSubTermList,ISO_AX_TL))
+        myComponentList.add_component(Component(tmpTermList,SOURCE_2D))
+        source2D_comp = myComponentList.find_component(SOURCE_2D)
+
+        ### 23) Substitute SOURCE_2D into SCALAR_FLUX
+        scalarFlux_comp.substitute_component(source2D_comp)
+        scalarFlux_comp.write_latex_equation()
+
+        ### 24) Solve ISO_AX_TL (substitute LIN_RAD_AZI, QUAD_RAD_AZI, QUAD_RAD_POL)
+        ###     substitute SOURCE_2D = SOURCE_3D - ISO_AX_TL to solve
+        isoaxTL_comp = myComponentList.find_component(ISO_AX_TL)
+        isoaxTL_comp.substitute_component( linradpolTL_comp)
+        isoaxTL_comp.substitute_component(quadradaziTL_comp)
+        isoaxTL_comp.substitute_component(quadradpolTL_comp)
+
+        isoaxTL_comp.substitute_component(source1D_comp)
+        isoaxTL_comp.substitute_component(source2D_comp)
+        isoaxTL_comp.solve()
+        isoaxTL_comp.write_latex_equation()
+  
+        ### 25) Substitute ISO_AX_TL into SCALAR_FLUX
+        scalarFlux_comp.substitute_component(isoaxTL_comp)
+        scalarFlux_comp.solve()
+        scalarFlux_comp.write_latex_equation()
+        scalarFlux_comp.solve_F()
+        scalarFlux_comp.write_latex_equation()
 
     #logname = "logfile"
     #
