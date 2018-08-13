@@ -437,23 +437,22 @@ class Term:
         firstTerm = True
         for mySubTerm in self.subterm_list:
 
-            if(mySubTerm.coeff_float() == 1.0):
-                mystr = ""
-            elif(mySubTerm.coeff_float() == -1.0):
-                if(allneg == False):
+            if(firstTerm):
+                if(mySubTerm.coeff_float() < 0.0 and allneg == False):
                     mystr = "- "
                 else:
                     mystr = ""
+                tmpstr.append(mystr)
+            if(mySubTerm.sign == 1 or allneg):
+                if(not firstTerm): 
+                    tmpstr.append('+ ')
             else:
-                if(mySubTerm.sign == 1 or allneg):
-                    if(not firstTerm): 
-                        tmpstr.append('+ ')
-                else:
-                    if(not firstTerm):
-                        tmpstr.append('- ')
+                if(not firstTerm):
+                    tmpstr.append('- ')
 
+            if(not (abs(mySubTerm.coeff_float()) == 1.0)):
                 mystr = '\\frac{%i}{%i} ' % (mySubTerm.get_numerator(),mySubTerm.get_denominator())
-            tmpstr.append(mystr)
+                tmpstr.append(mystr)
 
             if(mySubTerm.r_order > 0):
                 if(mySubTerm.r_order == 1):
@@ -1752,8 +1751,12 @@ if __name__ == '__main__':
 
         ### 19) Substitute LIN_AX_AZI, QUAD_AX_POL, QUAD_AX_AZI into SCALAR_FLUX
         scalarFlux_comp = myComponentList.find_component(SCALAR_FLUX)
+        scalarFlux_comp.write_latex_equation()
         scalarFlux_comp.substitute_component( linaxaziTL_comp)
         scalarFlux_comp.substitute_component(quadaxpolTL_comp)
+        linaxaziTL_comp.write_latex_equation()
+        quadaxpolTL_comp.write_latex_equation()
+        quadaxaziTL_comp.write_latex_equation()
         scalarFlux_comp.substitute_component(quadaxaziTL_comp)
         scalarFlux_comp.write_latex_equation()
 
