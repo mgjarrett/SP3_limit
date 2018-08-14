@@ -42,8 +42,11 @@ from subprocess import call
 # An expression can be simplified by combining like terms (i.e., terms with the same variable).
 # An expression can be solved if there are terms with the same variable as the self-variable.
 # A component will have a method to substitute another component in for the variable in one of the terms. 
+# The component definitions are hardcoded as infinite expansions and angular integrals. The value of the 
+# integrals is determined by quadrature rule, using 128 polar angles and 64 azimuthal angles.
 
-# The component definitions will be hardcorded. The solution order will also be hardcorded. 
+# the solution order is hardcoded based on examination of the form of the system of equations.
+# the solution order is general, meaning that it works for any order of TL expansion Pn, Fn
 
 class ComponentList:
     def __init__(self, component_list):
@@ -139,13 +142,10 @@ class Component:
     def substitute_component(self,thatComponent):
         # substitute the expression for that Component 
         # where it appears in this Component
-        #print "that Component ID = %i" % thatComponent.CID
         itx = 0 
         newTermList = [] 
-        #print "thatComponenet.CID = %i" % thatComponent.CID
         while(itx < self.nterms()):
             tmpTerm = self.term_list[itx]
-            #print "tmpTerm.TID = %i" % tmpTerm.TID
             if(tmpTerm.TID == thatComponent.CID):
                 #print "Match at ID = %i" % tmpTerm.TID
                 # calculate new terms by distributing
@@ -257,8 +257,8 @@ class Component:
         extraTerm.combine_subterms()
 
         ### now, extra term = I + x + x^2 + x^3
-        print "Extra term is:"
-        extraTerm.print_info()
+        #print "Extra term is:"
+        #extraTerm.print_info()
 
         ### next, multiply each term in the component by the new extraTerm
         newTermList = []
@@ -313,8 +313,8 @@ class Component:
         extraTerm.combine_subterms()
         ### sort subterms
         extraTerm.sort_subterms()
-        print "Extra term is:"
-        extraTerm.print_info()
+        #print "Extra term is:"
+        #extraTerm.print_info()
 
         newComponent = Component([extraTerm],SOURCE_3D)
         print "The solution is:"
@@ -349,16 +349,6 @@ class Component:
                     itx += 1
 
             self.angles_are_integrated = True
-
-    ### multiplies entire component by halfLZ
-    #def mult_halfLZ(self):
-    #    halfLZterm = Term([Subterm(1.0,0,0.5)],0)
-    #    newTermList = []
-    #    for myTerm in self.term_list:
-    #        tmpTerm = term_mult(myTerm,halfLZterm)
-    #        newTermList.append(tmpTerm)
-
-    #    self.term_list = newTermList
 
     def reset_LHS(self):
         self.LHS.subterm_list = []
@@ -399,8 +389,6 @@ class Component:
                 texstr = "\\label{eq:g_%i%i_%i} \n" % (ileg,ifourier,equation_counter.get_index(self.CID))
 
         texfile.write(texstr)
-        #texstr = "%s = & \\nonumber \\\\ \n" % (latex_expressions[self.CID])
-        #texstr = "& %s = \\\\ \n" % (latex_expressions[self.CID])
         texstr = "& %s = \\\\ \n" % latex_expr(self.CID)
         texfile.write(texstr)
 
@@ -431,13 +419,6 @@ class Term:
     @TID.setter
     def TID(self,ID):
         self.TID = ID
-
-    #@property
-    #def max_order(self):
-    #    return self.max_order
-    #@max_order.setter
-    #def max_order(self,number):
-    #    self.max_order = number
 
     def nsubterms(self):
         return len(self.subterm_list)
@@ -487,18 +468,6 @@ class Term:
                 del self.subterm_list[ist]
             else:
                 ist += 1 
-
-    # remove terms with half-integer order
-    #def remove_halves(self):
-    #    ist = 0
-    #    while (ist < self.nsubterms()):
-    #        tmpSubTerm1 = self.subterm_list[ist]
-    #        r_is_odd = ((2*tmpSubTerm1.r_order)%2 == 1)
-    #        z_is_odd = ((2*tmpSubTerm1.z_order)%2 == 1)
-    #        if(r_is_odd or z_is_odd):
-    #            del self.subterm_list[ist]
-    #        else:
-    #            ist += 1 
 
     # check that this term's component TL ID matches another term's
     def match_ID(self,thatTerm):
@@ -882,9 +851,7 @@ class muTerm:
             temp = 1.0
             temp = temp*sinmu[ipol]**self.sin_order
             temp = temp*mu[ipol]**self.cos_order
-            #for ileg in range(0,self.nlegterms()):
             for ileg in self.leg_list:
-                #pl = self.leg_list[ileg]
                 temp = temp*legendre[ileg,ipol]
             f += temp*wtpol[ipol]
         return f
@@ -897,23 +864,6 @@ class omegaTerm:
     def __del__(self):
         self.cos_list = []
         self.sin_list = []
-
-    #@property
-    #def cos_order(self):
-    #    return self.cos_order
-    #@CID.setter
-    #def cos_order(self,val):
-    #    self.cos_order = val
-
-    #@property
-    #def sin_order(self):
-    #    return self.cos_order
-    #@CID.setter
-    #def sin_order(self,val):
-    #    self.cos_order = val
-
-    #def nlegterms(self):
-    #    return len(self.leg_list)
 
     def eval_quad_omega(self):
         f = 0.0
@@ -968,7 +918,6 @@ def term_mult(myTerm, thatTerm):
     newTerm.sort_subterms()
 
     return newTerm
-
 
 # multiply two subterms
 def subterm_mult(mySubTerm,thatSubTerm):
@@ -1048,16 +997,16 @@ def compare_fraction(thatFloat):
             return i           
     return -1
 
-def compare_fraction_sum(thatFloat):
-    for i in range(0,nfrac):
-        for j in range(0,nfrac):
-            myPair1 = common_fractions[i]
-            myPair2 = common_fractions[j]
-            myFloat1 = float(myPair1[0])/float(myPair1[1])
-            myFloat2 = float(myPair2[0])/float(myPair2[1])
-            if(abs(myFloat1 + myFloat2 - abs(thatFloat)) < THRESHOLD*abs(thatFloat)): # this is a match
-                return [i,j]           
-    return [-1,-1]
+#def compare_fraction_sum(thatFloat):
+#    for i in range(0,nfrac):
+#        for j in range(0,nfrac):
+#            myPair1 = common_fractions[i]
+#            myPair2 = common_fractions[j]
+#            myFloat1 = float(myPair1[0])/float(myPair1[1])
+#            myFloat2 = float(myPair2[0])/float(myPair2[1])
+#            if(abs(myFloat1 + myFloat2 - abs(thatFloat)) < THRESHOLD*abs(thatFloat)): # this is a match
+#                return [i,j]           
+#    return [-1,-1]
 
 def getMomID(ileg,ifourier,dimension):
     if(dimension == AXIAL_TL):
@@ -1117,12 +1066,6 @@ weightfile = "weightquad_n128.txt"
 SCALAR_FLUX  = 1
 ### F: 3D source (this is the component we ultimately need to solve for)
 SOURCE_3D  = 2
-### isotropic source terms
-#ISO_AX_TL    = 3 # dJ/dz
-#ISO_RAD_TL   = 4 # (dJ/dx + dJ/dy)
-#### isotropic TL terms
-#SOURCE_2D    = 5 # F - dJ/dz
-#SOURCE_1D    = 6 # F - (dJ/dx + dJ/dy)
 
 AXIAL_TL = 0
 RADIAL_TL = 1
@@ -1137,14 +1080,8 @@ THRESHOLD = 1.0E-5
 #    texname = "equations_output_linear.tex"
 #if(int(sys.argv[1]) == 2):
 #    texname = "equations_output_quadratic.tex"
-texname = "equations_output_p3.tex"
+texname = "equations_output_p%i.tex" % (int(sys.argv[1])-1)
 
-#countmom = 4
-#countfourier = 4
-#countmom = 2
-#countfourier = 2
-#countmom = 1
-#countfourier = 1
 countmom = int(sys.argv[1])
 countfourier = int(sys.argv[2])
 
@@ -1154,72 +1091,66 @@ equation_counter = Counter(nID + 2*countmom*countfourier)
 variable_names = ['null',
                   'Scalar Flux',
                   'Source (F)']
-                  #'Isotropic axial TL',
-                  #'Isotropic radial TL',
-                  #'Isotropic 2D MOC source',
-                  #'Isotropic 1D axial source']
 
 latex_expressions = ['',
                      '\phi',
                      'F']
-                     #'\\ATL',
-                     #'\\RTL',
-                     #'\\l[ F - \ATL \\r]',
-                     #'\\l[ F - \RTL \\r]']
 
 equation_labels   = ['',
                      'scalarFlux',
                      'transport3D']
-                     #'isoATL',
-                     #'isoRTL',
-                     #'transport2D',
-                     #'transport1D']
 
 ##### commonly encountered fractions for LaTeX output
 common_fractions = [(1,  3),
                     (1,  5),
                     (1,  7),
                     (1,  9),
-                    (1, 11),
-                    (1, 15),
-                    (1, 21),
-                    (1, 25),
-                    (1, 27),
-                    (1, 33),
-                    (1, 35),
-                    (1, 42),
-                    (1, 49),
-                    (1, 63),
-                    (1, 75),
-                    (1, 99),
-                    (1,105),
-                    (1,125),
-                    (1,147),
-                    (1,175),
-                    (1,189),
-                    (1,245),
-                    (1,375),
-                    (2,  3),
-                    (2,  5),
-                    (2, 25),
-                    (2, 35),
-                    (2, 45),
-                    (2, 49),
-                    (2, 75),
-                    (2,105),
-                    (2,125),
-                    (2,135),
-                    (2,147),
-                    (2,175),
-                    (2,245),
-                    (3,  5),
-                    (3,  7),
-                    (3, 25),
-                    (3, 35),
-                    (3, 49),
-                    (3,125),
-                    (3,175),
-                    (4, 35)]
+                    (4, 45),
+                    (6, 45),
+                    (8, 45),
+                    (9, 45),
+                   (44,945),
+                   (44,315)]
+#                    (1, 11),
+#                    (1, 15),
+#                    (1, 21),
+#                    (1, 25),
+#                    (1, 27),
+#                    (1, 33),
+#                    (1, 35),
+#                    (1, 42),
+#                    (1, 49),
+#                    (1, 63),
+#                    (1, 75),
+#                    (1, 99),
+#                    (1,105),
+#                    (1,125),
+#                    (1,147),
+#                    (1,175),
+#                    (1,189),
+#                    (1,245),
+#                    (1,375),
+#                    (2,  3),
+#                    (2,  5),
+#                    (2, 25),
+#                    (2, 35),
+#                    (2, 45),
+#                    (2, 49),
+#                    (2, 75),
+#                    (2,105),
+#                    (2,125),
+#                    (2,135),
+#                    (2,147),
+#                    (2,175),
+#                    (2,245),
+#                    (3,  5),
+#                    (3,  7),
+#                    (3, 25),
+#                    (3, 35),
+#                    (3, 49),
+#                    (3,125),
+#                    (3,175),
+#                    (4, 35)]
 #common_fractions = [(1,  3),
 #                    (1,  5),
 #                    (1,  7),
@@ -1368,17 +1299,6 @@ common_fractions = [(1,  3),
 
 nfrac = len(common_fractions)
 
-# define global variables for quadrature
-#npol = 8
-#nmom = 4
-#mu = np.empty([npol])
-#sinmu = np.empty([npol])
-#wtpol = np.empty([npol])
-#legendre = np.empty([nmom,npol])
-#nazi = 64
-#wtazi = 2.0*math.pi/float(nazi)
-#angazi = np.empty([nazi])
-
 if __name__ == '__main__':
 
     global mu
@@ -1397,12 +1317,6 @@ if __name__ == '__main__':
     npol = 128
     nmom = int(sys.argv[1])
     nfourier = int(sys.argv[2])
-    #nmom = 4
-    #nfourier = 4
-    #nmom = 2
-    #nfourier = 2
-    #nmom = 1
-    #nfourier = 1
     mu = np.empty([npol])
     sinmu = np.empty([npol])
     wtpol = np.empty([npol])
@@ -1434,6 +1348,12 @@ if __name__ == '__main__':
             legendre[2,ipol]=(3.0*mutemp*mutemp-1.0)/2.0
         if(nmom > 3):
             legendre[3,ipol]=(5.0*mutemp**3-3.0*mutemp)/2.0
+        if(nmom > 4):
+            legendre[4,ipol]=(35.0*mutemp**4-30.0*mutemp**2+3)/8.0
+        if(nmom > 5):
+            legendre[5,ipol]=(63.0*mutemp**5-70.0*mutemp**3+15.0*mutemp)/8.0
+        if(nmom > 6):
+            legendre[6,ipol]=(231.0*mutemp**6-315.0*mutemp**4+105.0*mutemp**2-5.0)/16.0
         sinmu[ipol] = math.sqrt(1.0-mutemp**2)
         ipol+=1
     quad.close()
@@ -1491,29 +1411,11 @@ if __name__ == '__main__':
     ### this term does not have an associated moment ID
     infexpTerm_omegax = Term(tmpSubTermList,0) 
 
-    #tmpSubTermList   = [] 
-    #### infinite series expansion term for omega_x
-    #z_order = 0 
-    #for n in range(1,(2*MAX_ORDER+1)):
-    #    #tmpMuTerm = copy_mu(null_muterm)
-    #    tmpMuTerm = muTerm(0,n,[])
-    #    cos_list =  [(1,n)]
-    #    r_order = n/2.0
-    #    coeff = (-1.0)**(n-1)
-    #    thisOmegaTerm = omegaTerm(cos_list,null_sin_list)
-    #    newSubTerm = Subterm(coeff,r_order,z_order,tmpMuTerm,thisOmegaTerm)
-    #    tmpSubTermList.append(newSubTerm)
-
-    #`### this term does not have an associated moment ID
-    #`infexpTerm_RTL = Term(tmpSubTermList,0) 
-
     tmpSubTermList   = [] 
     ### infinite series expansion term for omega_z = mu
     r_order = 0 
     for n in range(0,(2*MAX_ORDER+1)):
-        #tmpMuTerm = copy_mu(null_muterm)
         tmpMuTerm = muTerm(n,0,[])
-        #cos_list =  [(0,0)]
         z_order = n/2.0
         coeff = (-1.0)**n
         thisOmegaTerm = omegaTerm(null_cos_list,null_sin_list)
@@ -1551,14 +1453,10 @@ if __name__ == '__main__':
     ### set up SCALAR_FLUX component
     scalarFlux_comp = Component(tmpTermList,SCALAR_FLUX)
 
-    #print "Printing before angle integration:"
-    #scalarFlux_comp.print_component()
-    #scalarFlux_comp.write_latex_equation()
-
     ### solve the scalar flux component by first integrating over mu and omega to determine coefficients
     scalarFlux_comp.integrate_angles() 
 
-    scalarFlux_comp.print_component()
+    #scalarFlux_comp.print_component()
     scalarFlux_comp.write_latex_equation()
 
     ### generate a null component for SOURCE_3D
@@ -1633,14 +1531,15 @@ if __name__ == '__main__':
             myComponentList.add_component(newComponent)
 
 
-    ### radial TL moments
+    ##############################################
+    ### Set up equations for radial TL moments ###
+    ##############################################
     ### iterate through the Legendre and Fourier moments, creating a component for each
     cos_order = 0
     sin_order = 1
     for jleg in range(0,nmom):
         # for the jth moment, integrate over expression for 1D angular flux,
         # operated on by (\Ox d/dx) and P_j(\mu), and cos(pw)
-        #thisLegList = [jleg]
         for jfourier in range(0,nfourier):
             print "Generating radial TL component for l = %i, p = %i" % (jleg,jfourier)
 
@@ -1684,43 +1583,11 @@ if __name__ == '__main__':
             newComponent.integrate_angles()
             myComponentList.add_component(newComponent)
 
-    print "Print all of the components!"
+    #print "Print all of the components!"
     for myComponent in myComponentList.component_list:
-        #myComponent.integrate_angles()
         myComponent.combine_terms()
-        myComponent.print_component()
+        #myComponent.print_component()
 
-    myComponentList.print_dependence_matrix("step1")
-
-    #### print out a matrix that shows the dependence of all of the terms
-    #### the matrix should be a square matrix of size NxN, where N = total number of moments
-    #total_ID = nID + 2*nmom*nfourier
-    #dependence_matrix = np.zeros([total_ID+1,total_ID+1])
-    #for idx in range(0,total_ID+1):
-    #    print "idx = %i" % idx
-    #    thisComponent = myComponentList.find_component(idx)
-    #    if(thisComponent == -1): 
-    #        # cycle
-    #        print "no component for this term. idx = %i" % idx
-    #    else:
-    #        for term in thisComponent.term_list: 
-    #            dependence_matrix[idx,term.TID] = 1
-
-    #fig = plt.figure(1)
-    #plt.spy(dependence_matrix)
-    #plt.show()
-    #filetype = 'png'
-    #if(filetype == 'eps'):
-    #    filename = "matrix_dependence_P%i_F%i.eps" % (nmom-1,nfourier-1)
-    #    savename = "./%s" % (filename)
-    #    fig.savefig(savename, format='eps', dpi=300)
-    #    plt.close(fig)
-    #elif(filetype == 'png'):
-    #    filename = "matrix_dependence_P%i_F%i.png" % (nmom-1,nfourier-1)
-    #    savename = "./%s" % (filename)
-    #    fig.savefig(savename, format='png')
-    #    plt.close(fig)
-            
     ### write the latex equations for 1D angular flux moments
     for ileg in range(0,nmom):
         for ifourier in range(0,nfourier):
@@ -1742,7 +1609,7 @@ if __name__ == '__main__':
         for ifourier in range(0,nfourier):
             ### find the 1D angular flux component 
             thisMomID = getMomID(ileg,ifourier,AXIAL_TL)
-            print "Substituting into ID = %i" % thisMomID
+            #print "Substituting into ID = %i" % thisMomID
             thisAngFluxComp = myComponentList.find_component(thisMomID)
 
             ### figure out what it depends on, subsitute those components
@@ -1757,12 +1624,10 @@ if __name__ == '__main__':
                 thisAngFluxComp.substitute_component(tmpComponent)
 
             thisAngFluxComp.combine_terms()
-            thisAngFluxComp.print_component()
+            #thisAngFluxComp.print_component()
             thisAngFluxComp.write_latex_equation()
 
     ### at this point, the radial TL moments are eliminated, and we can safely remove them
-
-    myComponentList.print_dependence_matrix("step2")
 
     for ileg in range(0,nmom):
         for ifourier in range(0,nfourier):
@@ -1770,9 +1635,9 @@ if __name__ == '__main__':
             thisMomID = getMomID(ileg,ifourier,RADIAL_TL)
             myComponentList.remove_component(thisMomID)
 
-    myComponentList.print_dependence_matrix("step3")
+    #myComponentList.print_dependence_matrix("step3")
 
-    ### solve components that are solvable
+    ### solve each component to eliminate the diagonal term
     ### after solving, substitute this into the rest of the terms
     ### 
     count = 4
@@ -1781,10 +1646,8 @@ if __name__ == '__main__':
             ### find the 1D angular flux component 
             thisMomID = getMomID(ileg,ifourier,AXIAL_TL)
             thisAngFluxComp = myComponentList.find_component(thisMomID)
-            #for term in thisAngFluxComp.term_list:
-            #    if(term.TID == thisAngFluxComp.CID):
 
-            print "Solving component for ID = %i" % thisMomID
+            #print "Solving component for ID = %i" % thisMomID
             thisAngFluxComp.solve()
             ### substitute the solved expression into other terms
             for jleg in range(0,nmom):
@@ -1794,18 +1657,15 @@ if __name__ == '__main__':
                         otherAngFluxComp = myComponentList.find_component(otherMomID)
                         otherAngFluxComp.substitute_component(thisAngFluxComp)
 
-            count += 1
-            suff = "step%i" % count
-            myComponentList.print_dependence_matrix(suff)
-
-            # if no remaining terms depend on thisMomID, then delete the component
-            ### can't do this yet, it will screw up indexing 
+            #count += 1
+            #suff = "step%i" % count
+            #myComponentList.print_dependence_matrix(suff)
 
             #thisAngFluxComp.print_component()
             thisAngFluxComp.write_latex_equation()
-    count += 1
-    suff = "step%i" % count
-    myComponentList.print_dependence_matrix(suff)
+    #count += 1
+    #suff = "step%i" % count
+    #myComponentList.print_dependence_matrix(suff)
 
     ### solve for the polar isotropic moments
     ileg = 0
@@ -1824,26 +1684,14 @@ if __name__ == '__main__':
                             otherAngFluxComp = myComponentList.find_component(otherMomID)
                             otherAngFluxComp.substitute_component(thisAngFluxComp)
 
-                count += 1
-                suff = "step%i" % count
-                myComponentList.print_dependence_matrix(suff)
-
     ### substitute terms into the scalar flux
     scalarFluxComp = myComponentList.find_component(SCALAR_FLUX) 
-    #for term in scalarFluxComp.term_list:
-    #    tmpComponent = myComponentList.find_component(term.TID)
-    #    scalarFluxComp.substitute_component(tmpComponent)
 
-    #for ileg in [0,2]:
-    for ileg in range(0,nfourier):
+    for ileg in range(0,nmom):
         for ifourier in range(0,nfourier):
             thisMomID = getMomID(ileg,ifourier,AXIAL_TL)
             thisAngFluxComp = myComponentList.find_component(thisMomID)
             scalarFluxComp.substitute_component(thisAngFluxComp)
-
-    count += 1
-    suff = "step%i" % count
-    myComponentList.print_dependence_matrix(suff)
 
     ## we have phi = ( ... ) F
     scalarFluxComp.print_component()
