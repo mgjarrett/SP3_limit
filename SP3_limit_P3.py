@@ -21,6 +21,7 @@ import numpy as np
 import math
 import sys
 import time
+import matplotlib.pyplot as plt
 from subprocess import call
 
 ###################
@@ -68,6 +69,40 @@ class ComponentList:
         for myComponent in self.component_list:
             if(myComponent.CID == thatID):
                 return myComponent
+        return -1
+
+    def print_dependence_matrix(self,suffix):
+        ### print out a matrix that shows the dependence of all of the terms
+        ### the matrix should be a square matrix of size NxN, where N = total number of moments
+        suffix = str(suffix)
+
+        total_ID = nID + 2*nmom*nfourier
+        dependence_matrix = np.zeros([total_ID+1,total_ID+1])
+        for idx in range(0,total_ID+1):
+            print "idx = %i" % idx
+            thisComponent = self.find_component(idx)
+            if(thisComponent == -1): 
+                # cycle
+                print "no component for this term. idx = %i" % idx
+            else:
+                for term in thisComponent.term_list: 
+                    dependence_matrix[idx,term.TID] = 1
+    
+        fig = plt.figure(1)
+        plt.spy(dependence_matrix)
+        plt.show()
+        filetype = 'png'
+        if(filetype == 'eps'):
+            filename = "matrix_dependence_P%i_F%i_%s.eps" % (nmom-1,nfourier-1,suffix)
+            savename = "./%s" % (filename)
+            fig.savefig(savename, format='eps', dpi=300)
+            plt.close(fig)
+        elif(filetype == 'png'):
+            filename = "matrix_dependence_P%i_F%i_%s.png" % (nmom-1,nfourier-1,suffix)
+            savename = "./%s" % (filename)
+            fig.savefig(savename, format='png')
+            plt.close(fig)
+            
 
 class Component:
     def __init__(self, term_list, myTL_ID):
@@ -133,7 +168,9 @@ class Component:
                     del self.term_list[x]
                 else:
                     x += 1 
+
             itx += 1
+            tmpTerm1.combine_subterms()
 
     def remove_high_order(self):
         for myterm in self.term_list:
@@ -257,6 +294,30 @@ class Component:
         newComponent.print_component()
         newComponent.write_latex_equation()
 
+    def integrate_angles(self):
+        ### iterate through terms in the component, subterms in the term
+        for term in self.term_list:
+            for subterm in term.subterm_list:
+                subterm.integrate_mu()
+                subterm.integrate_omega()
+
+        itx = 0
+        while(itx < self.nterms()):
+            ### clear out zeroes
+            ist = 0
+            while(ist < self.term_list[itx].nsubterms()):
+                mycoeff = self.term_list[itx].subterm_list[ist].coeff
+                if(abs(mycoeff) < THRESHOLD):
+                    del self.term_list[itx].subterm_list[ist]
+                else:
+                    ist += 1
+            
+            ### delete term if no subterms remain
+            if(self.term_list[itx].nsubterms() == 0):
+                del self.term_list[itx]
+            else:
+                itx += 1
+
     ### multiplies entire component by halfLZ
     def mult_halfLZ(self):
         halfLZterm = Term([Subterm(1.0,0,0.5)],0)
@@ -280,7 +341,14 @@ class Component:
             myterm.print_info()
 
     def print_component(self):
-        print "My component terms: ID = %i (%s)" % (self.CID,variable_names[self.CID])
+        if(self.CID < nID):
+            print "My component terms: ID = %i (%s)" % (self.CID,variable_names[self.CID])
+        else: # this is a TL moment
+            [dimension,ileg,ifourier] = getMomOrder(self.CID)
+            if(dimension == AXIAL_TL):
+                print "AXIAL TL COMPONENT: l = %i, p = %i" % (ileg,ifourier)
+            elif(dimension == RADIAL_TL):
+                print "RADIAL TL COMPONENT: l = %i, p = %i" % (ileg,ifourier)
         for myterm in self.term_list:
             myterm.print_term()
 
@@ -392,7 +460,14 @@ class Term:
             mySubTerm.print_info()
 
     def print_term(self):
-        print "Term variable ID: %i (%s)" % (self.TID,variable_names[self.TID])
+        if(self.TID < nID):
+            print "Term variable ID: %i (%s)" % (self.TID,variable_names[self.TID])
+        else: # this is a TL moment
+            [dimension,ileg,ifourier] = getMomOrder(self.TID)
+            if(dimension == AXIAL_TL):
+                print "Axial TL: l = %i, p = %i" % (ileg,ifourier)
+            elif(dimension == RADIAL_TL):
+                print "Radial TL: l = %i, p = %i" % (ileg,ifourier)
         print "( ",
         for mySubTerm in self.subterm_list:
             if(mySubTerm.coeff > 0.0):
@@ -404,24 +479,24 @@ class Term:
                 if(mySubTerm.r_order == 1):
                     print "Lr",
                 else:
-                    print "Lr^%i" % mySubTerm.r_order,
+                    print "Lr^%d" % mySubTerm.r_order,
             if(mySubTerm.z_order > 0):
                 if(mySubTerm.z_order == 1):
                     print "Lz",
                 else:
-                    print "Lz^%i" % mySubTerm.z_order,
+                    print "Lz^%d" % mySubTerm.z_order,
 
             ### mu terms
-            if(mySubTerm.muTerm.cos_order > 0):
-                print "u^%i" % mySubTerm.muTerm.cos_order,
-            if(mySubTerm.muTerm.sin_order > 0):
-                print "sqrt(1-u^2)^%i" % mySubTerm.muTerm.sin_order,
-            if(mySubTerm.muTerm.nlegterms > 0):
-                for ileg in mySubTerm.muTerm.leg_list:
+            if(mySubTerm.mu_term.cos_order > 0):
+                print "u^%i" % mySubTerm.mu_term.cos_order,
+            if(mySubTerm.mu_term.sin_order > 0):
+                print "sqrt(1-u^2)^%i" % mySubTerm.mu_term.sin_order,
+            if(mySubTerm.mu_term.nlegterms > 0):
+                for ileg in mySubTerm.mu_term.leg_list:
                     print "P_%i(u)" % ileg,
 
             ### omega terms
-            myWterm = mySubTerm.omegaTerm
+            myWterm = mySubTerm.omega_term
             for icos in myWterm.cos_list:
                 print "cos(%iw)^%i" % (icos[0],icos[1])
             for isin in myWterm.sin_list:
@@ -483,7 +558,7 @@ class Term:
                 if(mySubTerm.r_order == 1):
                     tmpstr.append('\\opL_r ')
                 else:
-                    mystr = '\\opL_r^{%i} ' % mySubTerm.r_order
+                    mystr = '\\opL_r^{%4.2f} ' % mySubTerm.r_order
                     tmpstr.append(mystr)
 
             intzorder = int(mySubTerm.z_order)
@@ -491,7 +566,7 @@ class Term:
                 if(intzorder == 1):
                     tmpstr.append('\\opL_z ')
                 else:
-                    mystr = '\\opL_z^{%i} ' % intzorder
+                    mystr = '\\opL_z^{%d} ' % intzorder
                     tmpstr.append(mystr)
 
             if(mySubTerm.r_order == 0 and intzorder == 0):
@@ -505,7 +580,22 @@ class Term:
         if((2*mySubTerm.z_order)%2 == 1): # half LZ is present
             tmpstr.append('\halfLZ ') 
 
-        tmpstr.append(latex_expressions[self.TID])
+        if(self.TID < len(latex_expressions)):
+            tmpstr.append(latex_expressions[self.TID])
+        else:
+            if(self.TID < nID + (nmom*nfourier)):
+                [dimension,ileg,ifourier] = getMomOrder(self.TID)
+                if(dimension == AXIAL_TL):
+                    if(ifourier == 0):
+                        momstr = "f_{%i,0}" % (ileg)
+                    else:
+                        momstr = "f_{c,%i,%i}" % (ileg,ifourier)
+                elif(dimension == RADIAL_TL):
+                    if(ifourier == 0):
+                        momstr = "g_{%i,0}" % (ileg)
+                    else:
+                        momstr = "g_{c,%i,%i}" % (ileg,ifourier)
+            tmpstr.append(momstr)
         tmpstr.append(' \\nonumber \\\\ \n')
 
         #print tmpstr
@@ -632,21 +722,21 @@ class Subterm:
             if((self.r_order + self.z_order) <= MAX_ORDER): # we need to find a fraction
                 if(have_frac == -1): # we didn't find the fraction! 
                     if(abs(self.coeff) >= THRESHOLD):
-                        print "Didn't find the fraction in our list! The float %8.6e is the sum of " % abs(self.coeff)
-                        print "%16.14e and %16.14e" % (abs(oldcoeff),abs(thatSubTerm.coeff))
+                        #print "Didn't find the fraction in our list! The float %8.6e is the sum of " % abs(self.coeff)
+                        #print "%16.14e and %16.14e" % (abs(oldcoeff),abs(thatSubTerm.coeff))
                         i = compare_fraction(oldcoeff)
                         j = compare_fraction(thatSubTerm.coeff)
                         if(i >= 0):
                             myPair1 = common_fractions[i]
-                        else:
-                            print "did not find fraction for coeff 1"
+                        #else:
+                        #    print "did not find fraction for coeff 1"
                         if(j >= 0):
                             myPair2 = common_fractions[j]
-                        else:
-                            print "did not find fraction for coeff 2"
-                        if(i >= 0 and j >= 0): 
-                            print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-                                         myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
+                        #else:
+                        #    print "did not find fraction for coeff 2"
+                        #if(i >= 0 and j >= 0): 
+                        #    print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+                        #                 myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
 
                         ### search for sum of two common fractions
                         #[frac1,frac2] = compare_fraction_sum(coeff)
@@ -678,15 +768,27 @@ class Subterm:
             return True
         else:
             return False
+
+    def integrate_mu(self):
+        muint = self.mu_term.eval_quad_mu()
+        self.coeff = self.coeff*muint
+        null_muterm = muTerm(0,0,[])
+        self.mu_term = null_muterm
+
+    def integrate_omega(self):
+        omegaint = self.omega_term.eval_quad_omega()
+        self.coeff = self.coeff*omegaint
+        null_omegaterm = omegaTerm([],[])
+        self.omega_term = null_omegaterm
         
     def print_info(self):
-        print "Subterm: coeff = %.5f,Lr = %i, Lz = %i" % (self.coeff,self.r_order,self.z_order),
-        print "u^{%i}, q(1-u^2)^{%i}," % (self.muTerm.cos_order,self.muTerm.sin_order),
-        for ileg in self.muTerm.leg_list:
+        print "Subterm: coeff = %.5f,Lr = %d, Lz = %d" % (self.coeff,self.r_order,self.z_order),
+        print "u^{%i}, q(1-u^2)^{%i}," % (self.mu_term.cos_order,self.mu_term.sin_order),
+        for ileg in self.mu_term.leg_list:
             print "P{%i}(u)" % ileg,
-        for icos in self.omegaTerm.cos_list:
+        for icos in self.omega_term.cos_list:
             print "cos(%iw)^{%i}" % (icos[0],icos[1]),
-        for isin in self.omegaTerm.sin_list:
+        for isin in self.omega_term.sin_list:
             print "sin(%iw)%{%i}" % (isin[0],isin[1]),
         print ""
 
@@ -721,15 +823,14 @@ class muTerm:
     def eval_quad_mu(self):
         f = 0.0
         for ipol in range(0,npol): 
-            tmpmu = mu[ipol]
-            temp = 1
+            temp = 1.0
             temp = temp*sinmu[ipol]**self.sin_order
             temp = temp*mu[ipol]**self.cos_order
             #for ileg in range(0,self.nlegterms()):
             for ileg in self.leg_list:
                 #pl = self.leg_list[ileg]
                 temp = temp*legendre[ileg,ipol]
-            f += temp
+            f += temp*wtpol[ipol]
         return f
 
 class omegaTerm:
@@ -762,18 +863,18 @@ class omegaTerm:
         f = 0.0
         for iazi in range(0,nazi): 
             tmpazi = angazi[iazi]
-            temp = 1
-            for icos in cos_list:
+            temp = 1.0
+            for icos in self.cos_list:
                 frequency = icos[0]
                 order = icos[1]
-                temp = temp*math.cos[frequency*tmpazi]**order
+                temp = temp*math.cos(frequency*tmpazi)**order
 
-            for isin in sin_list:
+            for isin in self.sin_list:
                 frequency = isin[0]
                 order = isin[1]
-                temp = temp*math.sin[frequency*tmpazi]**order
+                temp = temp*math.sin(frequency*tmpazi)**order
 
-            f += temp*wtpol[ipol]
+            f += temp*wtazi
         return f
 
 class Counter:
@@ -822,35 +923,51 @@ def subterm_mult(mySubTerm,thatSubTerm):
     if((r_order + z_order) <= MAX_ORDER): # we need to find a fraction
         if(have_frac == -1): # we didn't find the fraction! 
             if(abs(coeff) >= THRESHOLD):
-                print "Didn't find the fraction in our list! The float %8.6e is the product of " % abs(coeff)
-                print "%16.14e and %16.14e" % (abs(mySubTerm.coeff),abs(thatSubTerm.coeff))
+                #print "Didn't find the fraction in our list! The float %8.6e is the product of " % abs(coeff)
+                #print "%16.14e and %16.14e" % (abs(mySubTerm.coeff),abs(thatSubTerm.coeff))
                 i = compare_fraction(mySubTerm.coeff)
                 j = compare_fraction(thatSubTerm.coeff)
                 if(i >= 0):
                     myPair1 = common_fractions[i]
-                else:
-                    print "did not find fraction for coeff 1"
+                #else:
+                #    print "did not find fraction for coeff 1"
                 if(j >= 0):
                     myPair2 = common_fractions[j]
-                else:
-                    print "did not find fraction for coeff 2"
-                if(i >= 0 and j >= 0): 
-                    print "%i/%i x %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-                                 myPair2[1],myPair1[0]*myPair2[0],myPair1[1]*myPair2[1])
+                #else:
+                #    print "did not find fraction for coeff 2"
+                #if(i >= 0 and j >= 0): 
+                #    print "%i/%i x %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+                #                 myPair2[1],myPair1[0]*myPair2[0],myPair1[1]*myPair2[1])
 
                 ### search for sum of two common fractions
-                [frac1,frac2] = compare_fraction_sum(coeff)
-                if(frac1 >= 0): # we found a match
-                    print "The float is the sum of two fractions:"
-                    
-                    myPair1 = common_fractions[frac1]
-                    myPair2 = common_fractions[frac2]
-                    print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
-                                 myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
+                #[frac1,frac2] = compare_fraction_sum(coeff)
+                #if(frac1 >= 0): # we found a match
+                #    #print "The float is the sum of two fractions:"
+                #    
+                #    myPair1 = common_fractions[frac1]
+                #    myPair2 = common_fractions[frac2]
+                #    #print "%i/%i + %i/%i = %i/%i " %  (myPair1[0],myPair1[1],myPair2[0],
+                #    #             myPair2[1],myPair1[0]*myPair2[1]+myPair2[0]*myPair1[1],myPair1[1]*myPair2[1])
  
                 
+    cos_order = mySubTerm.mu_term.cos_order + thatSubTerm.mu_term.cos_order
+    sin_order = mySubTerm.mu_term.sin_order + thatSubTerm.mu_term.sin_order
+    leg_list = []
+    leg_list.extend(mySubTerm.mu_term.leg_list)
+    leg_list.extend(thatSubTerm.mu_term.leg_list)
 
-    return Subterm(coeff,r_order,z_order)
+    cos_list = []
+    cos_list.extend(mySubTerm.omega_term.cos_list)
+    cos_list.extend(thatSubTerm.omega_term.cos_list)
+
+    sin_list = []
+    sin_list.extend(mySubTerm.omega_term.sin_list)
+    sin_list.extend(thatSubTerm.omega_term.sin_list)
+
+    tmpMuTerm = muTerm(cos_order,sin_order,leg_list)
+    tmpOmegaTerm = omegaTerm(cos_list,sin_list)
+
+    return Subterm(coeff,r_order,z_order,tmpMuTerm,tmpOmegaTerm)
 
 def copy_subterm_list(thatSubTermList):
     newSubTermList = []
@@ -859,7 +976,7 @@ def copy_subterm_list(thatSubTermList):
     return newSubTermList
 
 def copy_subterm(thatSubTerm):
-    return Subterm(thatSubTerm.coeff,thatSubTerm.r_order,thatSubTerm.z_order)
+    return Subterm(thatSubTerm.coeff,thatSubTerm.r_order,thatSubTerm.z_order,thatSubTerm.mu_term,thatSubTerm.omega_term)
 
 def copy_mu(thatMuTerm):
     return muTerm(thatMuTerm.cos_order,thatMuTerm.sin_order,thatMuTerm.leg_list)
@@ -886,6 +1003,33 @@ def compare_fraction_sum(thatFloat):
                 return [i,j]           
     return [-1,-1]
 
+def getMomID(ileg,ifourier,dimension):
+    if(dimension == AXIAL_TL):
+        return nID + (nmom*ifourier) + ileg + 1
+    elif(dimension == RADIAL_TL):
+        return nID + (nmom*nfourier) + (nmom*ifourier) + ileg + 1
+    else:
+        print "Moment ID for dimension that is not AXIAL or RADIAL!!!"
+
+def getMomOrder(IDX):
+     
+    if(IDX <= (nID + nmom*nfourier)):
+        dimension = AXIAL_TL
+        momID = IDX - nID 
+        ileg = momID%nmom
+        ifourier = ( momID - ileg ) / nmom
+    elif(IDX <= (nID + 2*nmom*nfourier)):
+        dimension = RADIAL_TL
+        momID = IDX - nID 
+        momID = momID - nmom*nfourier
+        ileg = momID%nmom
+        ifourier = ( momID - ileg ) / nmom
+    else:
+        print "This isn't a TL moment!"
+
+    return [dimension,ileg,ifourier]
+
+
 ### indexing for each TL component 
 
 quadfile = "polquad_n8.txt"
@@ -896,18 +1040,20 @@ SCALAR_FLUX  = 1
 ### F: 3D source (this is the component we ultimately need to solve for)
 SOURCE_3D  = 2
 ### isotropic source terms
-ISO_AX_TL    = 3 # dJ/dz
-ISO_RAD_TL   = 4 # (dJ/dx + dJ/dy)
+#ISO_AX_TL    = 3 # dJ/dz
+#ISO_RAD_TL   = 4 # (dJ/dx + dJ/dy)
 #### isotropic TL terms
-SOURCE_2D    = 5 # F - dJ/dz
-SOURCE_1D    = 6 # F - (dJ/dx + dJ/dy)
+#SOURCE_2D    = 5 # F - dJ/dz
+#SOURCE_1D    = 6 # F - (dJ/dx + dJ/dy)
 
-nID = 6
+AXIAL_TL = 0
+RADIAL_TL = 1
+nID = 2
 
 MAX_ORDER = 3
 LEG_ORDER = 3
 FOURIER_ORDER = 3
-THRESHOLD = 1.0E-6
+THRESHOLD = 1.0E-5
 
 #if(int(sys.argv[1]) == 1):
 #    texname = "equations_output_linear.tex"
@@ -920,27 +1066,27 @@ equation_counter = Counter(nID)
 # names for each TL component variable
 variable_names = ['null',
                   'Scalar Flux',
-                  'Source (F)',
-                  'Isotropic axial TL',
-                  'Isotropic radial TL',
-                  'Isotropic 2D MOC source',
-                  'Isotropic 1D axial source']
+                  'Source (F)']
+                  #'Isotropic axial TL',
+                  #'Isotropic radial TL',
+                  #'Isotropic 2D MOC source',
+                  #'Isotropic 1D axial source']
 
 latex_expressions = ['',
                      '\phi',
-                     'F',
-                     '\\ATL',
-                     '\\RTL',
-                     '\\l[ F - \ATL \\r]',
-                     '\\l[ F - \RTL \\r]']
+                     'F']
+                     #'\\ATL',
+                     #'\\RTL',
+                     #'\\l[ F - \ATL \\r]',
+                     #'\\l[ F - \RTL \\r]']
 
 equation_labels   = ['',
                      'scalarFlux',
-                     'transport3D',
-                     'isoATL',
-                     'isoRTL',
-                     'transport2D',
-                     'transport1D']
+                     'transport3D']
+                     #'isoATL',
+                     #'isoRTL',
+                     #'transport2D',
+                     #'transport1D']
 
 ##### commonly encountered fractions for LaTeX output
 common_fractions = [(1,  3),
@@ -964,12 +1110,8 @@ common_fractions = [(1,  3),
                     (1,147),
                     (1,175),
                     (1,189),
-                    (1,231),
                     (1,245),
-                    (1,343),
                     (1,375),
-                    (1,735),
-                    (1,1715),
                     (2,  3),
                     (2,  5),
                     (2, 25),
@@ -990,104 +1132,152 @@ common_fractions = [(1,  3),
                     (3, 49),
                     (3,125),
                     (3,175),
-                    (3,245),
-                    (3,343),
-                    (3,1715),
-                    (4, 35),
-                    (4, 45),
-                    (4,105),
-                    (4,175),
-                    (4,245),
-                    (4,525),
-                    (5,  3),
-                    (5,  7),
-                    (5,  9),
-                    (5, 11),
-                    (5, 21),
-                    (5, 27),
-                    (5, 33),
-                    (5, 49),
-                    (5, 63),
-                    (5, 99),
-                    (5,126),
-                    (5,147),
-                    (5,189),
-                    (5,231),
-                    (5,343),
-                    (5,441),
-                    (5,1715),
-                    (6, 35),
-                    (6, 45),
-                    (6, 77),
-                    (6,125),
-                    (6,175),
-                    (6,245),
-                    (6,539),
-                    (6,875),
-                    (6,1125),
-                    (8, 45),
-                    (8,105),
-                    (8,175),
-                    (8,225),
-                    (8,245),
-                    (8,315),
-                    (8,525),
-                    (8,875),
-                    (8,1575),
-                    (9, 35),
-                    (9, 49),
-                    (9,125),
-                    (9,175),
-                    (9,245),
-                   (10, 49),
-                   (10,189),
-                   (11,175),
-                   (12,175),
-                   (12,875),
-                   (12,245),
-                   (15,147),
-                   (16,175),
-                   (18,245),
-                   (18,875),
-                   (19,105),
-                   (22,2625),
-                   (24, 35),
-                   (24,245),
-                   (24,875),
-                   (25,441),
-                   (29,875),
-                   (30,539),
-                   (32,2625),
-                   (37,700),
-                   (39,225),
-                   (44,945),
-                   (46,675),
-                   (46,875),
-                   (62,147),
-                   (97,147),
-                   (97,735),
-                   (18,1225),
-                   (18,4375),
-                   (27,1225),
-                   (96,4900),
-                   (52,1575),
-                   (87,7875),
-                  (161,735),
-                  (101,1575),
-                  (101,3675),
-                  (106,4725),
-                  (112,1715),
-                  (162,7875),
-                  (252,8557),
-                  (252,8575),
-                  (372,1225),
-                  (348,6125),
-                  (592,3885),
-                  (696,6125),
-                  (548,18375),
-                  (938,42875),
-                  (3304,42875),
-                  (980,7203)]
+                    (4, 35)]
+#common_fractions = [(1,  3),
+#                    (1,  5),
+#                    (1,  7),
+#                    (1,  9),
+#                    (1, 11),
+#                    (1, 15),
+#                    (1, 21),
+#                    (1, 25),
+#                    (1, 27),
+#                    (1, 33),
+#                    (1, 35),
+#                    (1, 42),
+#                    (1, 49),
+#                    (1, 63),
+#                    (1, 75),
+#                    (1, 99),
+#                    (1,105),
+#                    (1,125),
+#                    (1,147),
+#                    (1,175),
+#                    (1,189),
+#                    (1,231),
+#                    (1,245),
+#                    (1,343),
+#                    (1,375),
+#                    (1,735),
+#                    (1,1715),
+#                    (2,  3),
+#                    (2,  5),
+#                    (2, 25),
+#                    (2, 35),
+#                    (2, 45),
+#                    (2, 49),
+#                    (2, 75),
+#                    (2,105),
+#                    (2,125),
+#                    (2,135),
+#                    (2,147),
+#                    (2,175),
+#                    (2,245),
+#                    (3,  5),
+#                    (3,  7),
+#                    (3, 25),
+#                    (3, 35),
+#                    (3, 49),
+#                    (3,125),
+#                    (3,175),
+#                    (3,245),
+#                    (3,343),
+#                    (3,1715),
+#                    (4, 35),
+#                    (4, 45),
+#                    (4,105),
+#                    (4,175),
+#                    (4,245),
+#                    (4,525),
+#                    (5,  3),
+#                    (5,  7),
+#                    (5,  9),
+#                    (5, 11),
+#                    (5, 21),
+#                    (5, 27),
+#                    (5, 33),
+#                    (5, 49),
+#                    (5, 63),
+#                    (5, 99),
+#                    (5,126),
+#                    (5,147),
+#                    (5,189),
+#                    (5,231),
+#                    (5,343),
+#                    (5,441),
+#                    (5,1715),
+#                    (6, 35),
+#                    (6, 45),
+#                    (6, 77),
+#                    (6,125),
+#                    (6,175),
+#                    (6,245),
+#                    (6,539),
+#                    (6,875),
+#                    (6,1125),
+#                    (8, 45),
+#                    (8,105),
+#                    (8,175),
+#                    (8,225),
+#                    (8,245),
+#                    (8,315),
+#                    (8,525),
+#                    (8,875),
+#                    (8,1575),
+#                    (9, 35),
+#                    (9, 49),
+#                    (9,125),
+#                    (9,175),
+#                    (9,245),
+#                   (10, 49),
+#                   (10,189),
+#                   (11,175),
+#                   (12,175),
+#                   (12,875),
+#                   (12,245),
+#                   (15,147),
+#                   (16,175),
+#                   (18,245),
+#                   (18,875),
+#                   (19,105),
+#                   (22,2625),
+#                   (24, 35),
+#                   (24,245),
+#                   (24,875),
+#                   (25,441),
+#                   (29,875),
+#                   (30,539),
+#                   (32,2625),
+#                   (37,700),
+#                   (39,225),
+#                   (44,945),
+#                   (46,675),
+#                   (46,875),
+#                   (62,147),
+#                   (97,147),
+#                   (97,735),
+#                   (18,1225),
+#                   (18,4375),
+#                   (27,1225),
+#                   (96,4900),
+#                   (52,1575),
+#                   (87,7875),
+#                  (161,735),
+#                  (101,1575),
+#                  (101,3675),
+#                  (106,4725),
+#                  (112,1715),
+#                  (162,7875),
+#                  (252,8557),
+#                  (252,8575),
+#                  (372,1225),
+#                  (348,6125),
+#                  (592,3885),
+#                  (696,6125),
+#                  (548,18375),
+#                  (938,42875),
+#                  (3304,42875),
+#                  (980,7203)]
 
 nfrac = len(common_fractions)
 
@@ -1109,6 +1299,8 @@ if __name__ == '__main__':
     global wtpol
     global legendre
     global npol
+    global nfourier
+    global nmom
     global nazi
     global wtazi
     global angazi
@@ -1116,6 +1308,9 @@ if __name__ == '__main__':
     ### load quadrature information
     npol = 8
     nmom = 4
+    nfourier = 4
+    #nmom = 2
+    #nfourier = 2
     mu = np.empty([npol])
     sinmu = np.empty([npol])
     wtpol = np.empty([npol])
@@ -1138,9 +1333,12 @@ if __name__ == '__main__':
         mutemp = float(line)
         mu[ipol]=mutemp
         legendre[0,ipol]=1.0
-        legendre[1,ipol]=mutemp
-        legendre[2,ipol]=(3.0*mutemp*mutemp-1.0)/2.0
-        legendre[3,ipol]=(5.0*mutemp**3-3.0*mutemp)/2.0
+        if(nmom > 1):
+            legendre[1,ipol]=mutemp
+        if(nmom > 2):
+            legendre[2,ipol]=(3.0*mutemp*mutemp-1.0)/2.0
+        if(nmom > 3):
+            legendre[3,ipol]=(5.0*mutemp**3-3.0*mutemp)/2.0
         sinmu[ipol] = math.sqrt(1.0-mutemp**2)
         ipol+=1
     quad.close()
@@ -1159,4 +1357,282 @@ if __name__ == '__main__':
     call(["touch",texname])
 
 
+    ### moment identification
+    ### 4 legendre moments, 4 fourier moments
+    ### define the terms, with their angle-dependence
+    ### nMomID = nleg*nfourier = 16
+    ### polar_momentID = nleg*ifourier+ileg
+    ### azi_momentID = nMomID + nleg*ifourier+ileg
+    ### 32 total moments
+
+    null_muterm = muTerm(0,0,[])
+    null_omegaterm = omegaTerm([],[])
+    null_cos_list = []
+    null_sin_list = []
+    null_leg_list = []
+    null_r_order = 0
+    null_z_order = 0
+
+    # set up component list
+    tmpComponentList = [] 
+
+    ############## SCALAR FLUX (\phi) #############
+    tmpTermList      = [] 
+    ### SOURCE_2D term
+    tmpSubTermList   = [] 
+
+    ### infinite series expansion term for omega_x
+    z_order = 0 
+    for n in range(0,(2*MAX_ORDER+1)):
+        #tmpMuTerm = copy_mu(null_muterm)
+        tmpMuTerm = muTerm(0,n,[])
+        cos_list =  [(1,n)]
+        r_order = n/2.0
+        coeff = (-1.0)**n
+        thisOmegaTerm = omegaTerm(cos_list,null_sin_list)
+        newSubTerm = Subterm(coeff,r_order,z_order,tmpMuTerm,thisOmegaTerm)
+        tmpSubTermList.append(newSubTerm)
+
+    ### this term does not have an associated moment ID
+    #tmpTermList.append(Term(tmpSubTermList,0))
+    infexpTerm_omegax = Term(tmpSubTermList,0) 
+
+    ### infinite series expansion term for omega_z = mu
+    z_order = 0 
+    for n in range(0,(2*MAX_ORDER+1)):
+        #tmpMuTerm = copy_mu(null_muterm)
+        tmpMuTerm = muTerm(n,0,[])
+        #cos_list =  [(0,0)]
+        z_order = n/2.0
+        coeff = (-1.0)**n
+        thisOmegaTerm = omegaTerm(null_cos_list,null_sin_list)
+        newSubTerm = Subterm(coeff,r_order,z_order,tmpMuTerm,thisOmegaTerm)
+        tmpSubTermList.append(newSubTerm)
+
+    ### this term does not have an associated moment ID
+    #tmpTermList.append(Term(tmpSubTermList,0))
+    infexpTerm_omegaz = Term(tmpSubTermList,0) 
+
+    ### the rest of the terms have only one subterm, and are associated with a moment ID 
+    tmpTermList = []
+    ### SOURCE_3D
+    tmpTerm = Term([Subterm(1.0/(4.0*math.pi),0,0,copy_mu(null_muterm),copy_omega(null_omegaterm))],SOURCE_3D)
+    tmp_dist = term_mult(tmpTerm,infexpTerm_omegax)
+    tmpTermList.append(tmp_dist)
+
+    ### axial TL term
+    ### iterate through Legendre and Fourier moments, creating a term for each
+    for ileg in range(0,nmom):
+        tmpMuTerm = muTerm(0,0,[ileg])
+        for ifourier in range(0,nfourier):
+            if(ifourier == 0):
+                coeff = - 1.0/(2.0*math.pi) * (2.0*ileg + 1.0) / 2.0
+                tmpOmegaTerm = null_omegaterm
+            else:
+                coeff = - 1.0/(math.pi) * (2.0*ileg + 1.0) / 2.0
+                cos_list = [(ifourier,1)]
+                tmpOmegaTerm = omegaTerm(cos_list,[])
+
+            momID = getMomID(ileg,ifourier,AXIAL_TL)
+            tmpTerm = Term([Subterm(coeff,0,0,tmpMuTerm,tmpOmegaTerm)],momID)
+            tmp_dist = term_mult(tmpTerm,infexpTerm_omegax)
+            tmpTermList.append(tmp_dist)
+
+    ### set up SCALAR_FLUX component
+    scalarFlux_comp = Component(tmpTermList,SCALAR_FLUX)
+
+    #print "Printing before angle integration:"
+    #scalarFlux_comp.print_component()
+    #scalarFlux_comp.write_latex_equation()
+
+    ### solve the scalar flux component by first integrating over mu and omega to determine coefficients
+    scalarFlux_comp.integrate_angles() 
+
+    scalarFlux_comp.print_component()
+    scalarFlux_comp.write_latex_equation()
+
+    myComponentList = ComponentList([scalarFlux_comp])
+
+    ### generate a component for each axial TL moment and each radial TL moment
+    
+    ### 1D angular flux moments
+    ### iterate through the Legendre and Fourier moments, creating a component for each
+    cos_order = 0
+    sin_order = 0
+    for jleg in range(0,nmom):
+        # for the jth moment, integrate over expression for 1D angular flux,
+        # operated on by (\mu d/dz) and P_j(\mu), and cos(pw)
+        #thisLegList = [jleg]
+        for jfourier in range(0,nfourier):
+            print "Generating axial TL component for l = %i, p = %i" % (jleg,jfourier)
+            if(jfourier > 0):
+                this_cos_list = [(jfourier,1)]
+            else:
+                this_cos_list = []
+
+            ### iterate through Legendre and Fourier moments, creating a term for each
+            tmpTermList = []
+
+            ### SOURCE_3D
+            tmpMuTerm = muTerm(cos_order,sin_order,[jleg])
+            tmpOmegaTerm = omegaTerm(this_cos_list,[])
+            tmpTerm = Term([Subterm(1.0/(4.0*math.pi),0,0,tmpMuTerm,tmpOmegaTerm)],SOURCE_3D)
+            tmp_dist = term_mult(tmpTerm,infexpTerm_omegaz)
+            tmpTermList.append(tmp_dist)
+
+            for ileg in range(0,nmom):
+                tmpMuTerm = muTerm(cos_order,sin_order,[jleg,ileg])
+                for ifourier in range(0,nfourier):
+                    if(ifourier == 0):
+                        coeff = - 1.0/(2.0*math.pi) * (2.0*ileg + 1.0) / 2.0
+                        tmpOmegaTerm = null_omegaterm
+                    else:
+                        coeff = - 1.0/(math.pi) * (2.0*ileg + 1.0) / 2.0
+                        cos_list = [(ifourier,1)]
+                        cos_list.extend(this_cos_list) 
+                        tmpOmegaTerm = omegaTerm(cos_list,[])
+
+                    momID = getMomID(ileg,ifourier,RADIAL_TL)
+                    tmpTerm = Term([Subterm(coeff,0,0,tmpMuTerm,tmpOmegaTerm)],momID)
+                    tmp_dist = term_mult(tmpTerm,infexpTerm_omegaz)
+                    tmpTermList.append(tmp_dist)
+
+            ### set up component for this TL moment
+            thisMomID = getMomID(jleg,jfourier,AXIAL_TL)
+            newComponent = Component(tmpTermList,thisMomID)
+            myComponentList.add_component(newComponent)
+
+
+    ### radial TL moments
+    ### iterate through the Legendre and Fourier moments, creating a component for each
+    cos_order = 0
+    sin_order = 1
+    for jleg in range(0,nmom):
+        # for the jth moment, integrate over expression for 1D angular flux,
+        # operated on by (\Ox d/dx) and P_j(\mu), and cos(pw)
+        #thisLegList = [jleg]
+        for jfourier in range(0,nfourier):
+            print "Generating radial TL component for l = %i, p = %i" % (jleg,jfourier)
+
+            if(jfourier > 0):
+                this_cos_list = [(jfourier,1)]
+            else:
+                this_cos_list = []
+            this_cos_list.append((1,1))
+
+            ### iterate through Legendre and Fourier moments, creating a term for each
+            tmpTermList = []
+
+            ### SOURCE_3D
+            tmpMuTerm = muTerm(cos_order,sin_order,[jleg])
+            tmpOmegaTerm = omegaTerm(this_cos_list,[])
+            tmpTerm = Term([Subterm(1.0/(4.0*math.pi),0,0,tmpMuTerm,tmpOmegaTerm)],SOURCE_3D)
+            tmp_dist = term_mult(tmpTerm,infexpTerm_omegax)
+            tmpTermList.append(tmp_dist)
+
+            for ileg in range(0,nmom):
+                tmpMuTerm = muTerm(cos_order,sin_order,[jleg,ileg])
+                for ifourier in range(0,nfourier):
+                    if(ifourier == 0):
+                        coeff = - 1.0/(2.0*math.pi) * (2.0*ileg + 1.0) / 2.0
+                        tmpOmegaTerm = omegaTerm(this_cos_list,[])
+                    else:
+                        coeff = - 1.0/(math.pi) * (2.0*ileg + 1.0) / 2.0
+                        cos_list = [(ifourier,1)]
+                        cos_list.extend(this_cos_list) 
+                        tmpOmegaTerm = omegaTerm(cos_list,[])
+
+                    momID = getMomID(ileg,ifourier,AXIAL_TL)
+                    tmpTerm = Term([Subterm(coeff,0,0,tmpMuTerm,tmpOmegaTerm)],momID)
+                    tmp_dist = term_mult(tmpTerm,infexpTerm_omegax)
+                    tmpTermList.append(tmp_dist)
+
+            ### set up component for this TL moment
+            thisMomID = getMomID(jleg,jfourier,RADIAL_TL)
+            newComponent = Component(tmpTermList,thisMomID)
+            myComponentList.add_component(newComponent)
+
+    print "Print all of the components!"
+    for myComponent in myComponentList.component_list:
+        myComponent.integrate_angles()
+        myComponent.combine_terms()
+        myComponent.print_component()
+
+    myComponentList.print_dependence_matrix("step1")
+
+    #### print out a matrix that shows the dependence of all of the terms
+    #### the matrix should be a square matrix of size NxN, where N = total number of moments
+    #total_ID = nID + 2*nmom*nfourier
+    #dependence_matrix = np.zeros([total_ID+1,total_ID+1])
+    #for idx in range(0,total_ID+1):
+    #    print "idx = %i" % idx
+    #    thisComponent = myComponentList.find_component(idx)
+    #    if(thisComponent == -1): 
+    #        # cycle
+    #        print "no component for this term. idx = %i" % idx
+    #    else:
+    #        for term in thisComponent.term_list: 
+    #            dependence_matrix[idx,term.TID] = 1
+
+    #fig = plt.figure(1)
+    #plt.spy(dependence_matrix)
+    #plt.show()
+    #filetype = 'png'
+    #if(filetype == 'eps'):
+    #    filename = "matrix_dependence_P%i_F%i.eps" % (nmom-1,nfourier-1)
+    #    savename = "./%s" % (filename)
+    #    fig.savefig(savename, format='eps', dpi=300)
+    #    plt.close(fig)
+    #elif(filetype == 'png'):
+    #    filename = "matrix_dependence_P%i_F%i.png" % (nmom-1,nfourier-1)
+    #    savename = "./%s" % (filename)
+    #    fig.savefig(savename, format='png')
+    #    plt.close(fig)
+            
+
+    ### first, substitute the radial TL moments into the 1D angular flux moments
     ###
+    for ileg in range(0,nmom):
+        for ifourier in range(0,nfourier):
+            ### find the 1D angular flux component 
+            thisMomID = getMomID(ileg,ifourier,AXIAL_TL)
+            print "Substituting into ID = %i" % thisMomID
+            thisAngFluxComp = myComponentList.find_component(thisMomID)
+
+            ### figure out what it depends on, subsitute those components
+            dependence_list = [] 
+            for term in thisAngFluxComp.term_list:
+                if(term.TID > SOURCE_3D): 
+                    dependence_list.append(term.TID)
+
+            for tid in dependence_list:
+                # don't sub scalar flux or SOURCE_3D yet
+                tmpComponent = myComponentList.find_component(tid) 
+                thisAngFluxComp.substitute_component(tmpComponent)
+
+            thisAngFluxComp.print_component()
+
+    myComponentList.print_dependence_matrix("step2")
+
+    ### then, substitute the 1D angular flux moments into the SCALAR flux equation
+    ###
+    ### find the 1D angular flux component 
+    thisMomID = getMomID(ileg,ifourier,AXIAL_TL)
+    print "Substituting into ID = %i" % thisMomID
+    thisAngFluxComp = myComponentList.find_component(thisMomID)
+
+    ### figure out what it depends on, subsitute those components
+    dependence_list = [] 
+    for term in thisAngFluxComp.term_list:
+        if(term.TID > SOURCE_3D): 
+            dependence_list.append(term.TID)
+
+    for tid in dependence_list:
+        # don't sub scalar flux or SOURCE_3D yet
+        tmpComponent = myComponentList.find_component(tid) 
+        thisAngFluxComp.substitute_component(tmpComponent)
+
+    thisAngFluxComp.print_component()
+
+    myComponentList.print_dependence_matrix("step2")
+
