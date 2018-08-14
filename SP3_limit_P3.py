@@ -120,6 +120,7 @@ class Component:
         thisMu = muTerm(0,0,[])
         thisOmega = omegaTerm([],[])
         self.LHS = Term([Subterm(1.0,0,0,thisMu,thisOmega)], myTL_ID)
+        self.angles_are_integrated = False
 
     def __del__(self):
         self.term_list = []
@@ -321,28 +322,33 @@ class Component:
         newComponent.write_latex_equation()
 
     def integrate_angles(self):
-        ### iterate through terms in the component, subterms in the term
-        for term in self.term_list:
-            for subterm in term.subterm_list:
-                subterm.integrate_mu()
-                subterm.integrate_omega()
+        if(self.angles_are_integrated):
+            print "Angles should only be integrated once!"
+        else:
+            ### iterate through terms in the component, subterms in the term
+            for term in self.term_list:
+                for subterm in term.subterm_list:
+                    subterm.integrate_mu()
+                    subterm.integrate_omega()
 
-        itx = 0
-        while(itx < self.nterms()):
-            ### clear out zeroes
-            ist = 0
-            while(ist < self.term_list[itx].nsubterms()):
-                mycoeff = self.term_list[itx].subterm_list[ist].coeff
-                if(abs(mycoeff) < THRESHOLD):
-                    del self.term_list[itx].subterm_list[ist]
+            itx = 0
+            while(itx < self.nterms()):
+                ### clear out zeroes
+                ist = 0
+                while(ist < self.term_list[itx].nsubterms()):
+                    mycoeff = self.term_list[itx].subterm_list[ist].coeff
+                    if(abs(mycoeff) < THRESHOLD):
+                        del self.term_list[itx].subterm_list[ist]
+                    else:
+                        ist += 1
+                
+                ### delete term if no subterms remain
+                if(self.term_list[itx].nsubterms() == 0):
+                    del self.term_list[itx]
                 else:
-                    ist += 1
-            
-            ### delete term if no subterms remain
-            if(self.term_list[itx].nsubterms() == 0):
-                del self.term_list[itx]
-            else:
-                itx += 1
+                    itx += 1
+
+            self.angles_are_integrated = True
 
     ### multiplies entire component by halfLZ
     def mult_halfLZ(self):
@@ -483,16 +489,16 @@ class Term:
                 ist += 1 
 
     # remove terms with half-integer order
-    def remove_halves(self):
-        ist = 0
-        while (ist < self.nsubterms()):
-            tmpSubTerm1 = self.subterm_list[ist]
-            r_is_odd = ((2*tmpSubTerm1.r_order)%2 == 1)
-            z_is_odd = ((2*tmpSubTerm1.z_order)%2 == 1)
-            if(r_is_odd or z_is_odd):
-                del self.subterm_list[ist]
-            else:
-                ist += 1 
+    #def remove_halves(self):
+    #    ist = 0
+    #    while (ist < self.nsubterms()):
+    #        tmpSubTerm1 = self.subterm_list[ist]
+    #        r_is_odd = ((2*tmpSubTerm1.r_order)%2 == 1)
+    #        z_is_odd = ((2*tmpSubTerm1.z_order)%2 == 1)
+    #        if(r_is_odd or z_is_odd):
+    #            del self.subterm_list[ist]
+    #        else:
+    #            ist += 1 
 
     # check that this term's component TL ID matches another term's
     def match_ID(self,thatTerm):
@@ -1418,6 +1424,8 @@ if __name__ == '__main__':
     for line in quad: 
         theta = float(line)
         mutemp = math.cos(theta)
+        if(theta < 0.0):
+            mutemp = -1.0*abs(mutemp)
         mu[ipol]=mutemp
         legendre[0,ipol]=1.0
         if(nmom > 1):
@@ -1621,6 +1629,7 @@ if __name__ == '__main__':
             ### set up component for this TL moment
             thisMomID = getMomID(jleg,jfourier,AXIAL_TL)
             newComponent = Component(tmpTermList,thisMomID)
+            newComponent.integrate_angles()
             myComponentList.add_component(newComponent)
 
 
@@ -1672,11 +1681,12 @@ if __name__ == '__main__':
             ### set up component for this TL moment
             thisMomID = getMomID(jleg,jfourier,RADIAL_TL)
             newComponent = Component(tmpTermList,thisMomID)
+            newComponent.integrate_angles()
             myComponentList.add_component(newComponent)
 
     print "Print all of the components!"
     for myComponent in myComponentList.component_list:
-        myComponent.integrate_angles()
+        #myComponent.integrate_angles()
         myComponent.combine_terms()
         myComponent.print_component()
 
@@ -1824,7 +1834,8 @@ if __name__ == '__main__':
     #    tmpComponent = myComponentList.find_component(term.TID)
     #    scalarFluxComp.substitute_component(tmpComponent)
 
-    for ileg in [0,2]:
+    #for ileg in [0,2]:
+    for ileg in range(0,nfourier):
         for ifourier in range(0,nfourier):
             thisMomID = getMomID(ileg,ifourier,AXIAL_TL)
             thisAngFluxComp = myComponentList.find_component(thisMomID)
