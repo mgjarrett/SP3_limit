@@ -76,7 +76,7 @@ class Component:
     def CID(self):
         return self.CID
     @CID.setter
-    def nterms(self,ID):
+    def CID(self,ID):
         self.CID = ID
 
     def nterms(self):
