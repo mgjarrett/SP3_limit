@@ -351,14 +351,14 @@ class Component:
             self.angles_are_integrated = True
 
     ### multiplies entire component by halfLZ
-    def mult_halfLZ(self):
-        halfLZterm = Term([Subterm(1.0,0,0.5)],0)
-        newTermList = []
-        for myTerm in self.term_list:
-            tmpTerm = term_mult(myTerm,halfLZterm)
-            newTermList.append(tmpTerm)
+    #def mult_halfLZ(self):
+    #    halfLZterm = Term([Subterm(1.0,0,0.5)],0)
+    #    newTermList = []
+    #    for myTerm in self.term_list:
+    #        tmpTerm = term_mult(myTerm,halfLZterm)
+    #        newTermList.append(tmpTerm)
 
-        self.term_list = newTermList
+    #    self.term_list = newTermList
 
     def reset_LHS(self):
         self.LHS.subterm_list = []
@@ -1544,7 +1544,7 @@ if __name__ == '__main__':
                 tmpOmegaTerm = omegaTerm(cos_list,[])
 
             momID = getMomID(ileg,ifourier,AXIAL_TL)
-            tmpTerm = Term([Subterm(coeff,0,0,tmpMuTerm,tmpOmegaTerm)],momID)
+            tmpTerm = Term([Subterm(coeff,0,0.5,tmpMuTerm,tmpOmegaTerm)],momID)
             tmp_dist = term_mult(tmpTerm,infexpTerm_omegax)
             tmpTermList.append(tmp_dist)
 
