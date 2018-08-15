@@ -317,7 +317,9 @@ class Component:
         #extraTerm.print_info()
 
         newComponent = Component([extraTerm],SOURCE_3D)
-        print "The solution is:"
+        logstr = "The solution is: \n"
+        print logstr,
+        logfile.write(logstr)
         newComponent.print_component()
         newComponent.write_latex_equation()
 
@@ -364,13 +366,19 @@ class Component:
 
     def print_component(self):
         if(self.CID <= nID):
-            print "My component terms: ID = %i (%s)" % (self.CID,variable_names[self.CID])
+            logstr = "My component terms: ID = %i (%s) \n" % (self.CID,variable_names[self.CID])
+            print logstr,
+            logfile.write(logstr)
         else: # this is a TL moment
             [dimension,ileg,ifourier] = getMomOrder(self.CID)
             if(dimension == AXIAL_TL):
-                print "AXIAL TL COMPONENT: l = %i, p = %i" % (ileg,ifourier)
+                logstr = "AXIAL TL COMPONENT: l = %i, p = %i \n" % (ileg,ifourier)
+                print logstr,
+                logfile.write(logstr)
             elif(dimension == RADIAL_TL):
-                print "RADIAL TL COMPONENT: l = %i, p = %i" % (ileg,ifourier)
+                logstr = "RADIAL TL COMPONENT: l = %i, p = %i \n" % (ileg,ifourier)
+                print logstr,
+                logfile.write(logstr)
         for myterm in self.term_list:
             myterm.print_term()
 
@@ -477,54 +485,76 @@ class Term:
             return False
 
     def print_info(self):
-        print "Term variable ID: %i (%s)" % (self.TID,variable_names[self.TID])
+        tmpstr = []
+        logstr = "Term variable ID: %i (%s) \n" % (self.TID,variable_names[self.TID])
+        tmpstr.append(logstr)
         for mySubTerm in self.subterm_list:
             mySubTerm.print_info()
 
     def print_term(self):
+        tmpstr = []
         if(self.TID <= nID):
-            print "Term variable ID: %i (%s)" % (self.TID,variable_names[self.TID])
+            logstr = 'Term variable ID: %i (%s) \n' % (self.TID,variable_names[self.TID])
+            tmpstr.append(logstr)
         else: # this is a TL moment
             [dimension,ileg,ifourier] = getMomOrder(self.TID)
             if(dimension == AXIAL_TL):
-                print "Axial TL: l = %i, p = %i" % (ileg,ifourier)
+                logstr = 'Axial TL: l = %i, p = %i \n' % (ileg,ifourier)
+                tmpstr.append(logstr)
             elif(dimension == RADIAL_TL):
-                print "Radial TL: l = %i, p = %i" % (ileg,ifourier)
-        print "( ",
+                logstr = 'Radial TL: l = %i, p = %i \n' % (ileg,ifourier)
+                tmpstr.append(logstr)
+        logstr = '( '
+        tmpstr.append(logstr)
         for mySubTerm in self.subterm_list:
             if(mySubTerm.coeff > 0.0):
-                print "+ ",
+                #print "+ ",
+                tmpstr.append(' +')
             else:
                 print "",
-            print "%7.5f" % (mySubTerm.coeff),
+            logstr = ' %7.5f' % (mySubTerm.coeff)
+            tmpstr.append(logstr)
             if(mySubTerm.r_order > 0):
                 if(mySubTerm.r_order == 1):
-                    print "Lr",
+                    logstr = ' Lr'
                 else:
-                    print "Lr^%3.1f" % mySubTerm.r_order,
+                    logstr = ' Lr^%3.1f' % mySubTerm.r_order
+                tmpstr.append(logstr)
             if(mySubTerm.z_order > 0):
                 if(mySubTerm.z_order == 1):
-                    print "Lz",
+                    logstr = ' Lz'
                 else:
-                    print "Lz^%3.1f" % mySubTerm.z_order,
+                    logstr = ' Lz^%3.1f' % mySubTerm.z_order
+                tmpstr.append(logstr)
 
             ### mu terms
             if(mySubTerm.mu_term.cos_order > 0):
-                print "u^%i" % mySubTerm.mu_term.cos_order,
+                logstr = ' u^%i' % mySubTerm.mu_term.cos_order
+                tmpstr.append(logstr)
             if(mySubTerm.mu_term.sin_order > 0):
-                print "sqrt(1-u^2)^%i" % mySubTerm.mu_term.sin_order,
+                logstr = ' sqrt(1-u^2)^%i' % mySubTerm.mu_term.sin_order
+                tmpstr.append(logstr)
             if(mySubTerm.mu_term.nlegterms > 0):
                 for ileg in mySubTerm.mu_term.leg_list:
-                    print "P_%i(u)" % ileg,
+                    logstr = ' P_%i(u)' % ileg
+                    tmpstr.append(logstr)
 
             ### omega terms
             myWterm = mySubTerm.omega_term
             for icos in myWterm.cos_list:
-                print "cos(%iw)^%i" % (icos[0],icos[1])
+                logstr = 'cos(%iw)^%i' % (icos[0],icos[1])
+                tmpstr.append(logstr)
             for isin in myWterm.sin_list:
-                print "sin(%iw)^%i" % (isin[0],isin[1])
+                logstr = 'sin(%iw)^%i' % (isin[0],isin[1])
+                tmpstr.append(logstr)
 
-        print ") "
+        logstr = ') \n '
+        tmpstr.append(logstr)
+
+        nospace = ''
+        logstr = nospace.join(tmpstr)
+        print logstr
+        logfile.write(logstr)
 
     def write_term_latex(self):
         tmpstr = []
@@ -1062,6 +1092,9 @@ def latex_expr(ID):
 quadfile = "polquad_n128.txt"
 weightfile = "weightquad_n128.txt"
 
+logname = "P%i_F%i_limit.log" % (int(sys.argv[1]),int(sys.argv[2]))
+logfile = open(logname,"w")
+
 ### flux 
 SCALAR_FLUX  = 1
 ### F: 3D source (this is the component we ultimately need to solve for)
@@ -1479,7 +1512,9 @@ if __name__ == '__main__':
         # operated on by (\mu d/dz) and P_j(\mu), and cos(pw)
         #thisLegList = [jleg]
         for jfourier in range(0,nfourier):
-            print "Generating axial TL component for l = %i, p = %i" % (jleg,jfourier)
+            logstr = "Generating axial TL component for l = %i, p = %i \n" % (jleg,jfourier)
+            print logstr,
+            logfile.write(logstr)
             #if(jfourier > 0):
             #    this_cos_list = [(jfourier,1)]
             #else:
@@ -1541,7 +1576,9 @@ if __name__ == '__main__':
         # for the jth moment, integrate over expression for 1D angular flux,
         # operated on by (\Ox d/dx) and P_j(\mu), and cos(pw)
         for jfourier in range(0,nfourier):
-            print "Generating radial TL component for l = %i, p = %i" % (jleg,jfourier)
+            logstr = "Generating radial TL component for l = %i, p = %i \n" % (jleg,jfourier)
+            print logstr,
+            logfile.write(logstr)
 
             if(jfourier > 0):
                 this_cos_list = [(jfourier,1)]
@@ -1674,7 +1711,9 @@ if __name__ == '__main__':
         thisAngFluxComp = myComponentList.find_component(thisMomID)
         for term in thisAngFluxComp.term_list:
             if(term.TID == thisAngFluxComp.CID):
-                print "Solving component for ID = %i" % thisMomID
+                logstr = "Solving component for ID = %i \n" % thisMomID
+                print logstr,
+                logfile.write(logstr)
                 thisAngFluxComp.solve()
                 ### substitute the solved expression into other relevant terms
                 for jleg in range(0,nmom):
@@ -1698,3 +1737,5 @@ if __name__ == '__main__':
     scalarFluxComp.write_latex_equation()
     ## solve for F = ( ... ) phi
     scalarFluxComp.solve_F()
+
+    logfile.close()
