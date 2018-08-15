@@ -1,0 +1,40 @@
+Generating axial TL component for l = 0, p = 0 
+Generating axial TL component for l = 0, p = 1 
+Generating axial TL component for l = 0, p = 2 
+Generating axial TL component for l = 0, p = 3 
+Generating axial TL component for l = 1, p = 0 
+Generating axial TL component for l = 1, p = 1 
+Generating axial TL component for l = 1, p = 2 
+Generating axial TL component for l = 1, p = 3 
+Generating axial TL component for l = 2, p = 0 
+Generating axial TL component for l = 2, p = 1 
+Generating axial TL component for l = 2, p = 2 
+Generating axial TL component for l = 2, p = 3 
+Generating axial TL component for l = 3, p = 0 
+Generating axial TL component for l = 3, p = 1 
+Generating axial TL component for l = 3, p = 2 
+Generating axial TL component for l = 3, p = 3 
+Generating radial TL component for l = 0, p = 0 
+Generating radial TL component for l = 0, p = 1 
+Generating radial TL component for l = 0, p = 2 
+Generating radial TL component for l = 0, p = 3 
+Generating radial TL component for l = 1, p = 0 
+Generating radial TL component for l = 1, p = 1 
+Generating radial TL component for l = 1, p = 2 
+Generating radial TL component for l = 1, p = 3 
+Generating radial TL component for l = 2, p = 0 
+Generating radial TL component for l = 2, p = 1 
+Generating radial TL component for l = 2, p = 2 
+Generating radial TL component for l = 2, p = 3 
+Generating radial TL component for l = 3, p = 0 
+Generating radial TL component for l = 3, p = 1 
+Generating radial TL component for l = 3, p = 2 
+Generating radial TL component for l = 3, p = 3 
+My component terms: ID = 1 (Scalar Flux) 
+Term variable ID: 2 (Source (F)) 
+(  + 1.00000 + 0.33333 Lr + 0.20000 Lr^2.0 + 0.14286 Lr^3.0 + 0.33333 Lz + 0.20000 Lz^2.0 + 0.39638 Lr Lz + 0.14286 Lz^3.0 + 0.42888 Lr^2.0 Lz + 0.41142 Lr Lz^2.0) 
+ The solution is: 
+My component terms: ID = 2 (Source (F)) 
+Term variable ID: 1 (Scalar Flux) 
+(  + 1.00000 -0.33333 Lr -0.33333 Lz -0.08889 Lr^2.0 -0.08889 Lz^2.0 -0.17416 Lr Lz -0.04656 Lr^3.0 -0.04656 Lz^3.0 -0.14241 Lr^2.0 Lz -0.12494 Lr Lz^2.0) 
+ 
