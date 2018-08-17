@@ -1087,12 +1087,22 @@ def latex_expr(ID):
 
 ### indexing for each TL component 
 
-#quadfile = "polquad_n8.txt"
-#weightfile = "weightquad_n8.txt"
-quadfile = "polquad_n128.txt"
-weightfile = "weightquad_n128.txt"
+#npol = 8
+npol = int(sys.argv[3])
+nazi = int(sys.argv[4])
 
-logname = "P%i_F%i_limit.log" % (int(sys.argv[1]),int(sys.argv[2]))
+#quadtype = "gauss"
+quadtype = "yamamoto"
+quad_dir = "quadratures/%s" % quadtype
+quad_dir = "quadratures/yamamoto"
+quadfile = "./%s/polquad_n%i.txt" % (quad_dir,npol)
+weightfile = "./%s/weightquad_n%i.txt" % (quad_dir,npol)
+#quadfile = "./%s/polquad_n128.txt" % quad_dir
+#weightfile = "./%s/weightquad_n128.txt"% quad_dir
+
+dirname = "./%s%i_chebyshev%i" % (quadtype,npol,nazi)
+call(["mkdir","-p",dirname]) 
+logname = "./%s/P%i_F%i_limit.log" % (dirname,int(sys.argv[1])-1,int(sys.argv[2])-1)
 logfile = open(logname,"w")
 
 ### flux 
@@ -1338,23 +1348,23 @@ if __name__ == '__main__':
     global sinmu
     global wtpol
     global legendre
-    global npol
+    #global npol
     global nfourier
     global nmom
-    global nazi
+    #global nazi
     global wtazi
     global angazi
 
     ### load quadrature information
     #npol = 8
-    npol = 128
+    #npol = 128
     nmom = int(sys.argv[1])
     nfourier = int(sys.argv[2])
     mu = np.empty([npol])
     sinmu = np.empty([npol])
     wtpol = np.empty([npol])
     legendre = np.empty([nmom,npol])
-    nazi = 64
+    #nazi = 64
     wtazi = 2.0*math.pi/float(nazi)
     angazi = np.empty([nazi])
 
