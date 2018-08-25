@@ -89,7 +89,7 @@ class ComponentList:
 
         #total_ID = nID + 2*nmom*nfourier
         total_ID = self.ncomponents()
-        dependence_matrix = np.zeros([total_ID+1,total_ID+1])
+        dependence_matrix = np.zeros([total_ID,total_ID])
         for idx in range(0,total_ID+1):
             print "idx = %i" % idx
             thisComponent = self.find_component(idx)
@@ -98,7 +98,7 @@ class ComponentList:
                 print "no component for this term. idx = %i" % idx
             else:
                 for term in thisComponent.term_list: 
-                    dependence_matrix[idx,term.TID] = 1
+                    dependence_matrix[idx-1,term.TID-1] = 1
     
         fig = plt.figure(1)
         plt.spy(dependence_matrix)
@@ -910,7 +910,7 @@ class omegaTerm:
                 order = isin[1]
                 temp = temp*math.sin(frequency*tmpazi)**order
 
-            f += temp*wtazi
+            f += temp*wtazi[iazi]
         return f
 
 class Counter:
@@ -1091,16 +1091,20 @@ def latex_expr(ID):
 npol = int(sys.argv[3])
 nazi = int(sys.argv[4])
 
-#quadtype = "gauss"
-quadtype = "yamamoto"
-quad_dir = "quadratures/%s" % quadtype
-quad_dir = "quadratures/yamamoto"
-quadfile = "./%s/polquad_n%i.txt" % (quad_dir,npol)
-weightfile = "./%s/weightquad_n%i.txt" % (quad_dir,npol)
+polquadtype = "gauss"
+#polquadtype = "yamamoto"
+aziquadtype = "chebyshev"
+#aziquadtype = "modularized"
+quad_dir = "quadratures/%s" % polquadtype
+azi_quad_dir = "quadratures/%s" % aziquadtype
+polquadfile = "./%s/polquad_n%i.txt" % (quad_dir,npol)
+polweightfile = "./%s/weightquad_n%i.txt" % (quad_dir,npol)
 #quadfile = "./%s/polquad_n128.txt" % quad_dir
 #weightfile = "./%s/weightquad_n128.txt"% quad_dir
+aziquadfile = "./%s/aziquad_n%i.txt" % (azi_quad_dir,nazi)
+aziweightfile = "./%s/weightquad_n%i.txt" % (azi_quad_dir,nazi)
 
-dirname = "./%s%i_chebyshev%i" % (quadtype,npol,nazi)
+dirname = "./%s%i_%s%i" % (polquadtype,npol,aziquadtype,nazi)
 call(["mkdir","-p",dirname]) 
 logname = "./%s/P%i_F%i_limit.log" % (dirname,int(sys.argv[1])-1,int(sys.argv[2])-1)
 logfile = open(logname,"w")
@@ -1365,10 +1369,10 @@ if __name__ == '__main__':
     wtpol = np.empty([npol])
     legendre = np.empty([nmom,npol])
     #nazi = 64
-    wtazi = 2.0*math.pi/float(nazi)
+    #wtazi = 2.0*math.pi/float(nazi)
     angazi = np.empty([nazi])
 
-    quad = open(weightfile)
+    quad = open(polweightfile)
     ipol=0
     for line in quad: 
         tempweight = float(line)
@@ -1376,7 +1380,7 @@ if __name__ == '__main__':
         ipol+=1
     quad.close()
 
-    quad = open(quadfile)
+    quad = open(polquadfile)
     ipol=0
     for line in quad: 
         theta = float(line)
@@ -1402,9 +1406,44 @@ if __name__ == '__main__':
     quad.close()
    
     # setup azimuthal quadrature
-    halfwtazi = wtazi/2.0
-    angazi = np.linspace(halfwtazi,2.0*math.pi+halfwtazi,nazi+1)
-    nazi_half = nazi/2
+    #halfwtazi = wtazi/2.0
+    #angazi = np.linspace(halfwtazi,2.0*math.pi+halfwtazi,nazi+1)
+    #nazi_half = nazi/2
+
+    if(aziquadtype == "modularized"):
+        ### setup modularized azimuthal quadrature
+        quad = open(aziweightfile)
+        iazi=0
+        wtazi = np.empty([nazi])
+        for line in quad: 
+            tempweight = float(line)
+            wtazi[iazi]=tempweight*math.pi/2.0
+            iazi+=1
+        quad.close()
+        
+        quad = open(aziquadfile)
+        naziquart = nazi/4
+        nazihalf = nazi/2
+        angazi = np.empty([nazi])
+        iazi=0
+        for line in quad: 
+            theta = float(line)
+            angazi[iazi]                    = theta
+            angazi[iazi+naziquart]          = angazi[iazi]+math.pi/2.0
+            angazi[iazi+nazihalf]           = angazi[iazi]+math.pi
+            angazi[iazi+nazihalf+naziquart] = angazi[iazi]+math.pi*1.5
+            iazi+=1
+
+        quad.close()
+
+        print "sum of weights = %6.4f" % sum(wtazi)
+    else:
+        wtazi = np.empty([nazi])
+        scalarwtazi = 2.0*math.pi/float(nazi)
+        halfwtazi = scalarwtazi/2.0
+        angazi = np.linspace(halfwtazi,2.0*math.pi+halfwtazi,nazi+1)
+        nazi_half = nazi/2
+        wtazi[:] = scalarwtazi
 
 ##########################################################
 ########## nothing should go before this in main #########
@@ -1648,6 +1687,8 @@ if __name__ == '__main__':
             thisMomID = getMomID(ileg,ifourier,RADIAL_TL)
             thisRadTLComp = myComponentList.find_component(thisMomID)
             thisRadTLComp.write_latex_equation()
+
+    myComponentList.print_dependence_matrix("step1")
 
     ### first, substitute the radial TL moments into the 1D angular flux moments
     ###
