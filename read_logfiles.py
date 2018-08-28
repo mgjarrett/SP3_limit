@@ -88,8 +88,8 @@ if __name__ == '__main__':
         texfile.write("\\begin{tabular}{|cc|ccc|} \n")
         hline = "\\hline \n"
         texfile.write(hline)
-        #texfile.write(" N & F & $\opL_x \opL_z$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2 \\\\ \n")
-        texfile.write(" N & F & A & B & C \\\\ \n")
+        #texfile.write(" L & P & $\opL_x \opL_z$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2 $ \\\\ \n")
+        texfile.write(" L & P & A & B & C \\\\ \n")
         texfile.write(hline)
         for imom in range(0,max_nmom):
             texline = " %i & %i & %7.5f & %7.5f & %7.5f \\\\ \n" % (imom+1,imom+1,coeff_table[imom,5],coeff_table[imom,8],coeff_table[imom,9])
@@ -110,12 +110,12 @@ if __name__ == '__main__':
         texfile.write("\\begin{tabular}{|cc|ccc|} \n")
         hline = "\\hline \n"
         texfile.write(hline)
-        #texfile.write(" N & F & $\opL_x \opL_z$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2 \\\\ \n")
-        texfile.write(" N & F & A & B & C \\\\ \n")
+        #texfile.write(" L & P & $\opL_x \opL_z$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2 $ \\\\ \n")
+        texfile.write(" L & P & A & B & C \\\\ \n")
         texfile.write(hline)
         for imom in range(0,max_nmom):
-            #texline = " %i & %i & %5.3f & %5.3f & %5.3f \\\\ \n" % (imom+1,imom+1,rel_table[imom,5],rel_table[imom,8],rel_table[imom,9])
-            texline = " %i & %i & %8.6f & %8.6f & %8.6f \\\\ \n" % (imom+1,imom+1,rel_table[imom,5],rel_table[imom,8],rel_table[imom,9])
+            texline = " %i & %i & %5.3f & %5.3f & %5.3f \\\\ \n" % (imom+1,imom+1,rel_table[imom,5],rel_table[imom,8],rel_table[imom,9])
+            #texline = " %i & %i & %8.6f & %8.6f & %8.6f \\\\ \n" % (imom+1,imom+1,rel_table[imom,5],rel_table[imom,8],rel_table[imom,9])
             #texline = " %i & %i & %5.3f & %5.3f & %5.3f \\\\ \n" % (3,imom+1,rel_table[imom,5],rel_table[imom,8],rel_table[imom,9])
             texfile.write(texline)
         texfile.write(hline)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
         texfile.write("\\begin{tabular}{|cc|ccccccccc|} \n")
         hline = "\\hline \n"
         texfile.write(hline)
-        texfile.write(" N & F & $\opL_x$ & $\opL_z$ & $\opL_x^2$ & $\opL_z^2$ & $\opL_x \opL_z$ & $\opL_x^3$ & $\opL_z^3$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2$ \\\\ \n")
+        texfile.write(" L & P & $\opL_x$ & $\opL_z$ & $\opL_x^2$ & $\opL_z^2$ & $\opL_x \opL_z$ & $\opL_x^3$ & $\opL_z^3$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2$ \\\\ \n")
         texfile.write(hline)
         for imom in range(0,max_nmom):
             tmpstr = []
@@ -163,8 +163,8 @@ if __name__ == '__main__':
         texfile.write("\\begin{tabular}{|cc|ccccccccc|} \n")
         hline = "\\hline \n"
         texfile.write(hline)
-        #texfile.write(" N & F & $\opL_x \opL_z$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2$ \\\\ \n")
-        texfile.write(" N & F & $\opL_x$ & $\opL_z$ & $\opL_x^2$ & $\opL_z^2$ & $\opL_x \opL_z$ & $\opL_x^3$ & $\opL_z^3$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2 \\\\ \n")
+        #texfile.write(" L & P & $\opL_x \opL_z$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2$ \\\\ \n")
+        texfile.write(" L & P & $\opL_x$ & $\opL_z$ & $\opL_x^2$ & $\opL_z^2$ & $\opL_x \opL_z$ & $\opL_x^3$ & $\opL_z^3$ & $\opL_x^2 \opL_z$ & $\opL_x \opL_z^2 $ \\\\ \n")
         texfile.write(hline)
         for imom in range(0,max_nmom):
             tmpstr = []
