@@ -3,3 +3,4 @@ ignore_these/
 *.png
 gauss*
 yamamoto*
+*.tex
