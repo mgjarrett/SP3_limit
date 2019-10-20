@@ -4,8 +4,8 @@
 # This code performs algebra to determine the theoretical limit of 
 # accuracy for a 2D/1D method with linear axial and radial TL moments.
 # There are 4 linear moments. 
-# Equations for each  in terms of the others are determined 
-# integration by quadrature rule. There will be 
+# Equations for each  in terms of the others are determined using
+# integration by quadrature rule. 
 # We are actually analyzing a 1D/1D system here, with 1D radial dependence and 
 # 1D axial dependence. Thus, it is a x-z or r-z system, not an (xy)-z system.
 # Effectively, we have assumed that the problem is infinite in y and all y 
@@ -181,12 +181,10 @@ class Component:
 
             itx += 1
             tmpTerm1.combine_subterms()
-            #tmpTerm1.remove_halves()
 
     def remove_high_order(self):
         for myterm in self.term_list:
             myterm.remove_high_order()
-            #myterm.remove_halves()
 
     # solve component if the term appears on left and right sides of the equation
     def solve(self):
